@@ -149,8 +149,7 @@ serve(async (req) => {
           throw new Error(`Google API Error: ${searchRes.status} - ${JSON.stringify(searchData)}`);
         }
 
-        const places = searchData.places || [];
-        
+      
       // Parallel processing of places to avoid timeout
       const places = searchData.places || [];
       const processPlace = async (place: any) => {
