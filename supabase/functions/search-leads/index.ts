@@ -151,65 +151,68 @@ serve(async (req) => {
 
         const places = searchData.places || [];
         
-        for (const place of places) {
+      // Parallel processing of places to avoid timeout
+      const places = searchData.places || [];
+      const processPlace = async (place: any) => {
+        try {
           const hasSite = !!place.websiteUri;
           
-          // Apply filter
-          if (siteFilter === 'with_site' && !hasSite) continue;
-          if (siteFilter === 'without_site' && hasSite) continue;
+          if (siteFilter === 'with_site' && !hasSite) return null;
+          if (siteFilter === 'without_site' && hasSite) return null;
 
-          // Better city extraction from formattedAddress
-          // Format usually: "Street, Num - Neighborhood, City - State, Zip, Country"
-          // We try to find the part before " - StateCode"
           let city = null;
           if (place.formattedAddress) {
             const parts = place.formattedAddress.split(',');
             if (parts.length >= 3) {
-               // Try to grab the part that usually contains "City - State"
-               // Example: "Av. Paulista, 1000 - Bela Vista, São Paulo - SP, 01310-100, Brazil"
-               // parts: ["Av. Paulista", " 1000 - Bela Vista", " São Paulo - SP", " 01310-100", " Brazil"]
-               // The city is usually in the 3rd to last part or 2nd to last part
-               
-               // Simple heuristic: Look for the part with " - " which usually separates City and State
-               const cityStatePart = parts.find(p => p.includes(' - ') && p.trim().length < 40);
+               const cityStatePart = parts.find((p: string) => p.includes(' - ') && p.trim().length < 40);
                if (cityStatePart) {
                  city = cityStatePart.split(' - ')[0].trim();
                } else {
-                 // Fallback to 2nd to last part
                  city = parts[parts.length - 3]?.trim() || parts[parts.length - 2]?.trim();
                }
             }
           }
 
-          // 2. Try to find EMAIL
           let email = null;
-          
-          // Strategy A: Scrape the website if exists
           if (place.websiteUri) {
-            console.log(`Scraping website for email: ${place.websiteUri}`);
+            // Limited scraping time per site
             email = await scrapeEmailFromUrl(place.websiteUri);
           }
 
-          // Strategy B: Google Custom Search (if configured)
           if (!email) {
             const cx = Deno.env.get("GOOGLE_SEARCH_ENGINE_ID");
-            if (cx) {
-               console.log(`Searching Google for email: ${place.displayName?.text}`);
-               email = await searchGoogleForEmail(place.displayName?.text || "", city || "", apiKey, cx);
+            const searchApiKey = Deno.env.get("GOOGLE_SEARCH_API_KEY") || apiKey;
+            if (cx && searchApiKey) {
+               email = await searchGoogleForEmail(place.displayName?.text || "", city || "", searchApiKey, cx);
             }
           }
 
-          leadsToInsert.push({
+          return {
             company_name: place.displayName?.text || "Empresa sem nome",
             website: place.websiteUri || null,
             phone: place.nationalPhoneNumber || null,
-            email: email, // New field
+            email: email,
             city: city || place.formattedAddress?.split(',').slice(-2)[0]?.trim() || "Desconhecida",
             source: 'google_maps',
             status: 'lead_novo',
             notes: `Endereço Completo: ${place.formattedAddress}\nLink: ${place.googleMapsUri}`
-          });
+          };
+        } catch (e) {
+          console.error(`Error processing place ${place.displayName?.text}:`, e);
+          return null;
         }
+      };
+
+      // Process in batches of 5 to respect resources
+      const processedResults = [];
+      const batchSize = 5;
+      for (let i = 0; i < places.length; i += batchSize) {
+        const batch = places.slice(i, i + batchSize);
+        const batchResults = await Promise.all(batch.map(processPlace));
+        processedResults.push(...batchResults.filter(r => r !== null));
+      }
+      
+      leadsToInsert.push(...processedResults);
 
         // Check if we have enough LEADS (not just fetched places)
         if (leadsToInsert.length >= maxResults || !searchData.nextPageToken) break;
