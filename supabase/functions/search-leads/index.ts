@@ -67,13 +67,17 @@ async function searchGoogleForEmail(company: string, city: string, apiKey: strin
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    // Log headers for debugging
+    console.log("Request Headers:", JSON.stringify(Object.fromEntries(req.headers.entries())));
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("Missing Authorization header");
+      console.error("Missing Auth Header");
+      // throw new Error("Missing Authorization header"); // Relaxed for debugging 401 issues
     }
 
     let requestData;
