@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Lead, LeadStatus, STATUS_CONFIG } from '@/types/lead';
 import KanbanColumn from './KanbanColumn';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
@@ -19,8 +20,20 @@ const PIPELINE_STAGES: LeadStatus[] = [
 ];
 
 const KanbanBoard = ({ leads, onLeadClick, onStatusChange }: KanbanBoardProps) => {
-  const getLeadsForStatus = (status: LeadStatus) => 
-    leads.filter(lead => lead.status === status);
+  const leadsByStatus = useMemo(() => {
+    const acc = PIPELINE_STAGES.reduce((acc, status) => {
+      acc[status] = [];
+      return acc;
+    }, {} as Record<LeadStatus, Lead[]>);
+
+    leads.forEach(lead => {
+      if (acc[lead.status]) {
+        acc[lead.status].push(lead);
+      }
+    });
+
+    return acc;
+  }, [leads]);
 
   const onDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -51,7 +64,7 @@ const KanbanBoard = ({ leads, onLeadClick, onStatusChange }: KanbanBoardProps) =
             key={status}
             status={status}
             config={STATUS_CONFIG[status]}
-            leads={getLeadsForStatus(status)}
+            leads={leadsByStatus[status] || []}
             onLeadClick={onLeadClick}
             style={{ animationDelay: `${index * 50}ms` }}
           />

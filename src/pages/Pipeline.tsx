@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import KanbanBoard from '@/components/kanban/KanbanBoard';
 import { useLeads, useUpdateLeadStatus, useAutoProspect } from '@/hooks/useLeads';
 import { Lead, LeadStatus } from '@/types/lead';
@@ -13,7 +14,7 @@ const Pipeline = () => {
   const updateStatusMutation = useUpdateLeadStatus();
   const autoProspectMutation = useAutoProspect();
 
-  const leads = dbLeads.map(mapSupabaseLeadToUILead);
+  const leads = useMemo(() => dbLeads.map(mapSupabaseLeadToUILead), [dbLeads]);
 
   const handleLeadClick = (lead: Lead) => {
     toast({
