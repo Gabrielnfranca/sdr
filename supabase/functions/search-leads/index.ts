@@ -101,11 +101,21 @@ serve(async (req) => {
     );
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
+    
+    // Handle auth errors more gracefully
+    if (userError) {
        console.error("Auth Fail:", userError);
-       return new Response(JSON.stringify({ success: false, error: `Auth Error: ${userError?.message || 'No user found'}` }), {
+       let errorMessage = userError.message;
+       let status = 200; // Default to 200 to show in UI as error message
+
+       if (errorMessage.includes("missing sub claim")) {
+          errorMessage = "Sessão expirada ou inválida. Por favor, faça login novamente.";
+          status = 401;
+       }
+
+       return new Response(JSON.stringify({ success: false, error: errorMessage }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200 // Return 200 to show error in UI
+        status: status
       });
     }
     // ------------------
