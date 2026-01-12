@@ -10,7 +10,15 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutos de cache (dados considerados frescos)
+      gcTime: 1000 * 60 * 30, // 30 minutos mantendo dados na memória (garbage collection)
+      refetchOnWindowFocus: false, // Evita recarregar ao mudar de aba do navegador
+    },
+  },
+});
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
