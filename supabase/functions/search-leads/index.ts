@@ -174,16 +174,17 @@ serve(async (req) => {
           }
 
           let email = null;
-          if (place.websiteUri) {
-            // Limited scraping time per site
-            email = await scrapeEmailFromUrl(place.websiteUri);
-          }
+          // Temporarily disable heavy scraping to prevent timeouts provided we are debugging
+          // if (place.websiteUri) {
+          //   email = await scrapeEmailFromUrl(place.websiteUri);
+          // }
 
           if (!email) {
             const cx = Deno.env.get("GOOGLE_SEARCH_ENGINE_ID");
             const searchApiKey = Deno.env.get("GOOGLE_SEARCH_API_KEY") || apiKey;
+            // Only run secondary search if we have dedicated keys, to save time/quota
             if (cx && searchApiKey) {
-               email = await searchGoogleForEmail(place.displayName?.text || "", city || "", searchApiKey, cx);
+               // email = await searchGoogleForEmail(...)
             }
           }
 
@@ -192,10 +193,10 @@ serve(async (req) => {
             website: place.websiteUri || null,
             phone: place.nationalPhoneNumber || null,
             email: email,
-            city: city || place.formattedAddress?.split(',').slice(-2)[0]?.trim() || "Desconhecida",
+            city: city || "Desconhecida",
             source: 'google_maps',
             status: 'lead_novo',
-            notes: `Endereço Completo: ${place.formattedAddress}\nLink: ${place.googleMapsUri}`
+            notes: `Endereço: ${place.formattedAddress}`
           };
         } catch (e) {
           console.error(`Error processing place ${place.displayName?.text}:`, e);
