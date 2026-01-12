@@ -313,17 +313,29 @@ export function parseCSV(csvText: string): Partial<Lead>[] {
 }
 
 export async function searchLeads(query: string, limit: number = 20, siteFilter: 'all' | 'with_site' | 'without_site' = 'all') {
-  const { data, error } = await supabase.functions.invoke('search-leads', {
-    body: { query, limit, siteFilter },
-  });
+  try {
+    const { data, error } = await supabase.functions.invoke('search-leads', {
+      body: { query, limit, siteFilter },
+    });
 
-  if (error) throw error;
-  
-  if (data && data.success === false) {
-    throw new Error(data.error || "Erro desconhecido na busca");
+    if (error) {
+       // Se o erro for do tipo "non-2xx", geralmente significa Crash na Function ou Deploy pendente
+       if (error instanceof Error && error.message.includes('non-2xx')) {
+         console.error("Erro crítico na Edge Function. Verifique logs do Supabase.", error);
+         throw new Error("Erro no servidor (Edge Function). Tente fazer o deploy novamente: 'npx supabase functions deploy search-leads'");
+       }
+       throw error;
+    }
+    
+    if (data && data.success === false) {
+      throw new Error(data.error || "Erro desconhecido na busca");
+    }
+
+    return data;
+  } catch (err: any) {
+    console.error("Falha ao invocar search-leads:", err);
+    throw err;
   }
-
-  return data;
 }
 
 export async function autoProspect(limit: number = 5) {
