@@ -71,22 +71,44 @@ serve(async (req) => {
   }
 
   try {
-    // Log headers for debugging
-    console.log("Request Headers:", JSON.stringify(Object.fromEntries(req.headers.entries())));
-
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("Missing Auth Header");
-      // throw new Error("Missing Authorization header"); // Relaxed for debugging 401 issues
-    }
-
+    // Not throwing error immediately to allow debug response
+    
     let requestData;
     try {
       requestData = await req.json();
     } catch (e) {
-      throw new Error("Invalid request body");
+      return new Response(JSON.stringify({ success: false, error: "Invalid JSON body" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200 
+      });
     }
+
     const { query, limit = 10, siteFilter = 'all' } = requestData;
+
+    if (!query) {
+       return new Response(JSON.stringify({ success: false, error: "Query param is required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200
+      });
+    }
+
+    // --- AUTH CHECK ---
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader ?? "" } } }
+    );
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+       console.error("Auth Fail:", userError);
+       return new Response(JSON.stringify({ success: false, error: `Auth Error: ${userError?.message || 'No user found'}` }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200 // Return 200 to show error in UI
+      });
+    }
+    // ------------------
 
     const apiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
     const isMockMode = !apiKey || apiKey === "SUA_CHAVE_DO_GOOGLE_AQUI" || apiKey.includes("YOUR_KEY");
@@ -242,21 +264,8 @@ serve(async (req) => {
       } while (nextPageToken);
     }
 
-    // Insert into Supabase
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
-
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      throw new Error("User not authenticated");
-    }
+    // Insert into Supabase (Client already created above)
+    /* const supabaseClient = createClient... (removed redundant creation) */
 
     const leadsWithTenant = leadsToInsert.map(lead => ({
       ...lead,
