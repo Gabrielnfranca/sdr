@@ -4,8 +4,8 @@ import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 
 // Carrega variáveis de ambiente (se houver .env local, senão usa hardcoded para teste rápido)
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://bplowlmtfdzmxmaxbhvc.supabase.co";
-const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwbG93bG10ZmR6bXhtYXhiaHZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5ODA3NjksImV4cCI6MjA4MTU1Njc2OX0.R4cOz20ejvmHhM62pOyIlqz5hZkqp1Z1NHjXtu_bZlM";
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://arlpfhuxbnyexqlzajfs.supabase.co";
+const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybHBmaHV4Ym55ZXhxbHphamZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyMjc2NjcsImV4cCI6MjA4MzgwMzY2N30.tWLnmUY-SmEZfMg2UfUxLLP66lko9qSf_KSyt8HcHMQ";
 
 // URL do n8n LOCAL
 const N8N_WEBHOOK_URL = "http://localhost:5678/webhook-test/search";
