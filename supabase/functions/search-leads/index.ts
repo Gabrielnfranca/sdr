@@ -76,7 +76,13 @@ serve(async (req) => {
       throw new Error("Missing Authorization header");
     }
 
-    const { query, limit = 10, siteFilter = 'all' } = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (e) {
+      throw new Error("Invalid request body");
+    }
+    const { query, limit = 10, siteFilter = 'all' } = requestData;
 
     const apiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
     const isMockMode = !apiKey || apiKey === "SUA_CHAVE_DO_GOOGLE_AQUI" || apiKey.includes("YOUR_KEY");
@@ -238,7 +244,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: { Authorization: authHeader },
         },
       }
     );
