@@ -282,10 +282,11 @@ serve(async (req) => {
       data = result.data || [];
       error = result.error;
 
-      // --- INTEGRAÇÃO N8N ---
-      // Envia os leads novos para o n8n via Webhook (Túnel)
-      if (data.length > 0) {
-        const n8nUrl = "https://tender-news-shake.loca.lt/webhook-test/search";
+      // --- INTEGRAÇÃO N8N (Opcional) ---
+      // Se houver URL configurada no ambiente (N8N_WEBHOOK_URL), envia.
+      const n8nUrl = Deno.env.get("N8N_WEBHOOK_URL");
+
+      if (data.length > 0 && n8nUrl) {
         console.log(`Enviando ${data.length} leads para o n8n: ${n8nUrl}`);
         
         // Dispara sem esperar (fire-and-forget) para não travar a resposta
@@ -298,6 +299,7 @@ serve(async (req) => {
             timestamp: new Date().toISOString()
           })
         }).catch(err => console.error("Erro ao enviar para n8n:", err));
+
       }
       // ----------------------
     } else {
