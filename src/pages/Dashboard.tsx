@@ -2,10 +2,23 @@ import { Users, UserCheck, MessageSquare, TrendingUp, Clock, Target } from 'luci
 import MetricCard from '@/components/dashboard/MetricCard';
 import RecentLeads from '@/components/dashboard/RecentLeads';
 import CampaignList from '@/components/dashboard/CampaignList';
-import { mockLeads, mockCampaigns, getDashboardMetrics } from '@/data/mockData';
+import { useLeads } from '@/hooks/useLeads';
+import { mapSupabaseLeadToUILead } from '@/lib/utils';
+import { mockCampaigns } from '@/data/mockData';
 
 const Dashboard = () => {
-  const metrics = getDashboardMetrics();
+  const { data: dbLeads = [] } = useLeads();
+  const leads = dbLeads.map(mapSupabaseLeadToUILead);
+
+  const metrics = {
+    totalLeads: leads.length,
+    newLeads: leads.filter(l => l.status === 'novo').length,
+    inProgress: leads.filter(l => ['contato_enviado', 'followup_1', 'followup_2', 'engajado'].includes(l.status)).length,
+    interested: leads.filter(l => l.status === 'interesse').length,
+    humanAttention: leads.filter(l => l.status === 'atendimento_humano').length,
+    lost: leads.filter(l => l.status === 'perdido').length,
+    avgResponseTime: '-', // Placeholder until implemented
+  };
 
   return (
     <div className="p-8 space-y-8">
@@ -50,7 +63,7 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <RecentLeads leads={mockLeads} />
+        <RecentLeads leads={leads} />
         <CampaignList campaigns={mockCampaigns} />
       </div>
 
