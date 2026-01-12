@@ -340,9 +340,10 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("Error in search-leads:", error);
+    console.error("Error in search-leads function:", error);
+    // Return 200 even on error so the frontend can read the JSON body for the error message
     return new Response(JSON.stringify({ success: false, error: error.message }), {
-      status: 200, // Return 200 to allow frontend to read the error message
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
