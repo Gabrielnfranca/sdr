@@ -319,10 +319,15 @@ export async function searchLeads(query: string, limit: number = 20, siteFilter:
     });
 
     if (error) {
-       // Se o erro for do tipo "non-2xx", geralmente significa Crash na Function ou Deploy pendente
+       // Log the raw error for debugging
+       console.error("Supabase Function Error Details:", error);
+       
+       // Se o erro for do tipo "non-2xx", tente pegar mais detalhes se possível ou apenas repasse
        if (error instanceof Error && error.message.includes('non-2xx')) {
-         console.error("Erro crítico na Edge Function. Verifique logs do Supabase.", error);
-         throw new Error("Erro no servidor (Edge Function). Tente fazer o deploy novamente: 'npx supabase functions deploy search-leads'");
+          // Instead of masking it, we throw a more descriptive error if we can, 
+          // but mostly we want the UI to show that it failed specifically.
+          // Let's stop overriding the message so we can see if it's 401, 500, etc.
+          throw new Error(`Erro de Conexão (${error.message || '500'}). Verifique se o projeto está ativo.`);
        }
        throw error;
     }

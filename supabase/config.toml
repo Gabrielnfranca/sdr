@@ -21,6 +21,10 @@ api_url = "http://localhost"
 enabled = true
 port = 54324
 
+[functions.search-leads]
+verify_jwt = false
+
+
 [storage]
 enabled = true
 

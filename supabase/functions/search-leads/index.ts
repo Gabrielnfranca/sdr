@@ -108,9 +108,15 @@ serve(async (req) => {
        let errorMessage = userError.message;
        let status = 200; // Default to 200 to show in UI as error message
 
-       if (errorMessage.includes("missing sub claim")) {
+       if (
+          errorMessage.includes("missing sub claim") || 
+          errorMessage.includes("signature is invalid") ||
+          errorMessage.includes("jwt expired") ||
+          errorMessage.includes("invalid JWT")
+       ) {
           errorMessage = "Sessão expirada ou inválida. Por favor, faça login novamente.";
-          status = 401;
+          // Keep 200 to allow the generic client wrapper to parses the JSON error message
+          status = 200; 
        }
 
        return new Response(JSON.stringify({ success: false, error: errorMessage }), {
