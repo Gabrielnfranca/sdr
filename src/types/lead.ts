@@ -35,6 +35,7 @@ export interface Lead {
   createdAt: Date;
   lastContactAt?: Date;
   score: number;
+  position?: number;
 }
 
 export interface Interaction {

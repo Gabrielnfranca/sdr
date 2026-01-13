@@ -27,6 +27,7 @@ export interface Lead {
   opted_out_date: string | null;
   tags: string[] | null;
   notes: string | null;
+  position: number;
   created_at: string;
   updated_at: string;
 }

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import KanbanBoard from '@/components/kanban/KanbanBoard';
-import { useLeads, useUpdateLeadStatus, useAutoProspect, useUpdateLead } from '@/hooks/useLeads';
+import { useLeads, useUpdateLeadStatus, useAutoProspect, useUpdateLead, useUpdateLeadPosition } from '@/hooks/useLeads';
 import { Lead, LeadStatus } from '@/types/lead';
 import { useToast } from '@/hooks/use-toast';
 import { mapSupabaseLeadToUILead, mapUIStatusToDBStatus } from '@/lib/utils';
@@ -19,6 +19,7 @@ const Pipeline = ({ searchTerm = '' }: PipelineProps) => {
   const updateStatusMutation = useUpdateLeadStatus();
   const autoProspectMutation = useAutoProspect();
   const updateLeadMutation = useUpdateLead();
+  const updatePositionMutation = useUpdateLeadPosition();
   
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
@@ -62,6 +63,11 @@ const Pipeline = ({ searchTerm = '' }: PipelineProps) => {
     updateStatusMutation.mutate({ id: leadId, status: dbStatus });
   };
 
+  const handleLeadMove = (leadId: string, newStatus: LeadStatus, newPosition: number) => {
+    const dbStatus = mapUIStatusToDBStatus(newStatus);
+    updatePositionMutation.mutate({ id: leadId, status: dbStatus, position: newPosition });
+  };
+
   const handleAutoProspect = () => {
     autoProspectMutation.mutate(5); // Process 5 leads at a time
   };
@@ -97,6 +103,7 @@ const Pipeline = ({ searchTerm = '' }: PipelineProps) => {
           leads={leads} 
           onLeadClick={handleLeadClick}
           onStatusChange={handleStatusChange}
+          onLeadMove={handleLeadMove}
         />
       </div>
 

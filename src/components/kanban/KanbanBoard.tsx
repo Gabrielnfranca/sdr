@@ -7,6 +7,7 @@ interface KanbanBoardProps {
   leads: Lead[];
   onLeadClick?: (lead: Lead) => void;
   onStatusChange?: (leadId: string, newStatus: LeadStatus) => void;
+  onLeadMove?: (leadId: string, newStatus: LeadStatus, newPosition: number) => void;
 }
 
 const PIPELINE_STAGES: LeadStatus[] = [
@@ -19,13 +20,14 @@ const PIPELINE_STAGES: LeadStatus[] = [
   'atendimento_humano',
 ];
 
-const KanbanBoard = ({ leads, onLeadClick, onStatusChange }: KanbanBoardProps) => {
+const KanbanBoard = ({ leads, onLeadClick, onStatusChange, onLeadMove }: KanbanBoardProps) => {
   const leadsByStatus = useMemo(() => {
     const acc = PIPELINE_STAGES.reduce((acc, status) => {
       acc[status] = [];
       return acc;
     }, {} as Record<LeadStatus, Lead[]>);
 
+    // Leads are already sorted by position from useLeads hook
     leads.forEach(lead => {
       if (acc[lead.status]) {
         acc[lead.status].push(lead);
@@ -50,9 +52,46 @@ const KanbanBoard = ({ leads, onLeadClick, onStatusChange }: KanbanBoardProps) =
     }
 
     const newStatus = destination.droppableId as LeadStatus;
+    const destLeads = leadsByStatus[newStatus] || [];
     
-    if (onStatusChange) {
-      onStatusChange(draggableId, newStatus);
+    // Calculate new position
+    let newPosition = 0;
+    
+    // Removing the moved item from the list if it's the same column to calculate indices correctly
+    // But since we are looking at "destination index", we can just look at the array roughly
+    // The draggableId is NOT yet in destLeads (except if same column, then it is there at source index)
+    
+    let targetList = [...destLeads];
+    
+    if (source.droppableId === destination.droppableId) {
+       // Remove from old index first
+       targetList.splice(source.index, 1);
+    }
+    
+    // Get items around the insertion point
+    const prevItem = targetList[destination.index - 1];
+    const nextItem = targetList[destination.index];
+
+    if (!prevItem && !nextItem) {
+      // List is empty
+      newPosition = 1000;
+    } else if (!prevItem) {
+      // Insert at top
+      newPosition = (nextItem?.position || 0) / 2;
+      if (newPosition === 0) newPosition = 1000; // Fallback
+    } else if (!nextItem) {
+      // Insert at bottom
+      newPosition = (prevItem?.position || 0) + 1000;
+    } else {
+      // Insert in middle
+      newPosition = (prevItem.position! + nextItem.position!) / 2;
+    }
+
+    if (onLeadMove) {
+      onLeadMove(draggableId, newStatus, newPosition);
+    } else if (onStatusChange && newStatus !== source.droppableId as LeadStatus) {
+       // Fallback for just status change if move handler not provided
+       onStatusChange(draggableId, newStatus);
     }
   };
 

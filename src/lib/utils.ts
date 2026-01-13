@@ -52,7 +52,8 @@ export const mapSupabaseLeadToUILead = (dbLead: DBLead): UILead => {
     notes: dbLead.notes || '',
     createdAt: new Date(dbLead.created_at),
     lastContactAt: dbLead.last_contact_date ? new Date(dbLead.last_contact_date) : undefined,
-    score: dbLead.score || 0
+    score: dbLead.score || 0,
+    position: dbLead.position || 0
   };
 };
 

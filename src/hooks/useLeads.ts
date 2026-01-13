@@ -30,6 +30,7 @@ export function useLeads(filters?: { status?: LeadStatus; limit?: number }) {
       let query = supabase
         .from('leads')
         .select('*')
+        .order('position', { ascending: true })
         .order('created_at', { ascending: false });
 
       if (filters?.status) {
@@ -137,6 +138,49 @@ export function useImportLeads() {
     },
     onError: (error: Error) => {
       toast.error(error.message);
+    },
+  });
+}
+
+// Update lead position
+export function useUpdateLeadPosition() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, position, status }: { id: string; position: number; status?: string }) => {
+      const updates: any = { position };
+      if (status) updates.status = status;
+      
+      const { error } = await supabase
+        .from('leads')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+      return { id, position, status };
+    },
+    onMutate: async ({ id, position, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['leads'] });
+      const previousLeads = queryClient.getQueryData<Lead[]>(['leads']);
+
+      queryClient.setQueryData<Lead[]>(['leads'], (old) => {
+        if (!old) return [];
+        return old.map(lead => {
+          if (lead.id === id) {
+             return { ...lead, position, ...(status ? { status: status as LeadStatus } : {}) };
+          }
+          return lead;
+        });
+      });
+
+      return { previousLeads };
+    },
+    onError: (err, newTodo, context) => {
+      queryClient.setQueryData(['leads'], context?.previousLeads);
+      toast.error('Erro ao mover lead');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
   });
 }
