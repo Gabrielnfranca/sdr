@@ -9,7 +9,11 @@ import { Sparkles } from 'lucide-react';
 import EmailStats from '@/components/dashboard/EmailStats';
 import LeadDetailsSheet from '@/components/leads/LeadDetailsSheet';
 
-const Pipeline = () => {
+interface PipelineProps {
+  searchTerm?: string;
+}
+
+const Pipeline = ({ searchTerm = '' }: PipelineProps) => {
   const { toast } = useToast();
   const { data: dbLeads = [], isLoading } = useLeads();
   const updateStatusMutation = useUpdateLeadStatus();
@@ -18,7 +22,20 @@ const Pipeline = () => {
   
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
-  const leads = useMemo(() => dbLeads.map(mapSupabaseLeadToUILead), [dbLeads]);
+  const leads = useMemo(() => {
+    const allLeads = dbLeads.map(mapSupabaseLeadToUILead);
+    if (!searchTerm) return allLeads;
+
+    const lowerTerm = searchTerm.toLowerCase();
+    return allLeads.filter(lead => 
+      lead.companyName.toLowerCase().includes(lowerTerm) ||
+      lead.email?.toLowerCase().includes(lowerTerm) ||
+      lead.phone?.includes(lowerTerm) ||
+      lead.segment?.toLowerCase().includes(lowerTerm) ||
+      lead.city?.toLowerCase().includes(lowerTerm) ||
+      lead.notes?.toLowerCase().includes(lowerTerm)
+    );
+  }, [dbLeads, searchTerm]);
 
   const handleLeadClick = (lead: Lead) => {
     setSelectedLead(lead);

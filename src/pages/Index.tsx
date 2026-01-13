@@ -22,6 +22,7 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [addLeadOpen, setAddLeadOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const pageConfig = PAGE_CONFIG[currentPage] || PAGE_CONFIG.dashboard;
 
   const renderPage = () => {
@@ -29,9 +30,9 @@ const Index = () => {
       case 'dashboard':
         return <Dashboard />;
       case 'kanban':
-        return <Pipeline />;
+        return <Pipeline searchTerm={searchTerm} />;
       case 'leads':
-        return <Leads />;
+        return <Leads globalSearchTerm={searchTerm} />;
       case 'campaigns':
         return <Campaigns />;
       default:
@@ -63,6 +64,8 @@ const Index = () => {
           title={pageConfig.title} 
           subtitle={pageConfig.subtitle}
           onAddLead={currentPage !== 'campaigns' ? () => setAddLeadOpen(true) : undefined}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
         />
         {renderPage()}
       </main>

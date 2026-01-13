@@ -70,14 +70,21 @@ const mapSupabaseLeadToUILead = (dbLead: DBLead): UILead => {
   };
 };
 
-const Leads = () => {
+interface LeadsProps {
+  globalSearchTerm?: string;
+}
+
+const Leads = ({ globalSearchTerm = '' }: LeadsProps) => {
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
+
+  // Combine global and local search
+  const searchTerm = globalSearchTerm || localSearchTerm;
 
   const { data: dbLeads = [], isLoading } = useLeads();
   const deleteLeadsMutation = useDeleteLeads();
@@ -87,8 +94,10 @@ const Leads = () => {
   const filteredLeads = leads.filter(lead => 
     lead.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lead.segment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.city.toLowerCase().includes(searchTerm.toLowerCase())
+    lead.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lead.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
 
   const handleLeadClick = (lead: UILead) => {
     toast({
@@ -136,8 +145,8 @@ const Leads = () => {
         <div className="flex items-center gap-3">
           <Input
             placeholder="Buscar por empresa, segmento ou cidade..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={localSearchTerm}
+            onChange={(e) => setLocalSearchTerm(e.target.value)}
             className="w-80"
           />
           <Button variant="outline" size="icon">

@@ -7,9 +7,11 @@ interface HeaderProps {
   title: string;
   subtitle?: string;
   onAddLead?: () => void;
+  searchTerm?: string;
+  onSearchChange?: (value: string) => void;
 }
 
-const Header = ({ title, subtitle, onAddLead }: HeaderProps) => {
+const Header = ({ title, subtitle, onAddLead, searchTerm, onSearchChange }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="flex items-center justify-between px-8 py-4">
@@ -23,8 +25,10 @@ const Header = ({ title, subtitle, onAddLead }: HeaderProps) => {
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar leads..."
+              placeholder="Buscar leads por nome, email..."
               className="pl-10 bg-secondary/50 border-0 focus-visible:ring-1"
+              value={searchTerm || ''}
+              onChange={(e) => onSearchChange?.(e.target.value)}
             />
           </div>
 
