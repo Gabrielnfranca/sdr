@@ -25,6 +25,15 @@ const Pipeline = ({ searchTerm = '' }: PipelineProps) => {
 
   const leads = useMemo(() => {
     const allLeads = dbLeads.map(mapSupabaseLeadToUILead);
+    
+    // Crucial: explicit frontend sort to ensure optimistic updates work immediately
+    allLeads.sort((a, b) => {
+        const posA = a.position !== undefined ? a.position : 0;
+        const posB = b.position !== undefined ? b.position : 0;
+        if (posA !== posB) return posA - posB;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
     if (!searchTerm) return allLeads;
 
     const lowerTerm = searchTerm.toLowerCase();

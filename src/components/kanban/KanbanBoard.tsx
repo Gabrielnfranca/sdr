@@ -77,14 +77,19 @@ const KanbanBoard = ({ leads, onLeadClick, onStatusChange, onLeadMove }: KanbanB
       newPosition = 1000;
     } else if (!prevItem) {
       // Insert at top
-      newPosition = (nextItem?.position || 0) / 2;
-      if (newPosition === 0) newPosition = 1000; // Fallback
+      // Must be strictly smaller than next item
+      const nextPos = nextItem?.position || 0;
+      newPosition = nextPos - 1000; 
     } else if (!nextItem) {
       // Insert at bottom
-      newPosition = (prevItem?.position || 0) + 1000;
+      // Must be strictly larger than prev item
+      const prevPos = prevItem?.position || 0;
+      newPosition = prevPos + 1000;
     } else {
       // Insert in middle
-      newPosition = (prevItem.position! + nextItem.position!) / 2;
+      const prevPos = prevItem.position || 0;
+      const nextPos = nextItem.position || 0;
+      newPosition = (prevPos + nextPos) / 2;
     }
 
     if (onLeadMove) {
