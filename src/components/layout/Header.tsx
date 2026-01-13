@@ -1,4 +1,4 @@
-import { Bell, Search, Plus } from 'lucide-react';
+import { Bell, Search, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ModeToggle } from '@/components/mode-toggle';
@@ -26,10 +26,19 @@ const Header = ({ title, subtitle, onAddLead, searchTerm, onSearchChange }: Head
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Buscar leads por nome, email..."
-              className="pl-10 bg-secondary/50 border-0 focus-visible:ring-1"
+              className="pl-10 pr-8 bg-secondary/50 border-0 focus-visible:ring-1"
               value={searchTerm || ''}
               onChange={(e) => onSearchChange?.(e.target.value)}
             />
+            {searchTerm && (
+              <button
+                onClick={() => onSearchChange?.('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-3 h-3" />
+                <span className="sr-only">Limpar busca</span>
+              </button>
+            )}
           </div>
 
           {/* Notifications */}
