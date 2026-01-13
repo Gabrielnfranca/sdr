@@ -72,6 +72,46 @@ export function useLead(id: string | undefined) {
   });
 }
 
+// Update lead details
+export function useUpdateLead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Lead> }) => {
+      // Map UI fields to DB fields
+      const dbUpdate: any = {};
+      
+      if (data.email !== undefined) dbUpdate.email = data.email;
+      if (data.phone !== undefined) dbUpdate.phone = data.phone;
+      if (data.website !== undefined) dbUpdate.website = data.website;
+      if (data.notes !== undefined) dbUpdate.notes = data.notes;
+      if (data.city !== undefined) dbUpdate.city = data.city;
+      
+      // Handle special case for address - append to notes if present
+      if (data.address && (!data.notes || !data.notes.includes(data.address))) {
+        dbUpdate.notes = data.notes 
+          ? `${data.notes}\n\nEndereço Completo: ${data.address}` 
+          : `Endereço Completo: ${data.address}`;
+      }
+
+      const { error } = await supabase
+        .from('leads')
+        .update(dbUpdate)
+        .eq('id', id);
+
+      if (error) throw error;
+      return { id, ...data };
+    },
+    onSuccess: () => {
+      toast.success('Lead atualizado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao atualizar lead: ' + error.message);
+    },
+  });
+}
+
 // Import leads mutation
 export function useImportLeads() {
   const queryClient = useQueryClient();
@@ -115,11 +155,34 @@ export function useUpdateLeadStatus() {
       if (error) throw error;
       return { id, status };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    onMutate: async ({ id, status }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['leads'] });
+
+      // Snapshot the previous value for the main pipeline view (no filters)
+      const previousLeads = queryClient.getQueryData(['leads', undefined]);
+
+      // Optimistically update all lead lists in the cache
+      queryClient.setQueriesData({ queryKey: ['leads'] }, (old: Lead[] | undefined) => {
+        if (!old) return [];
+        return old.map((lead) => 
+          lead.id === id ? { ...lead, status } : lead
+        );
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousLeads };
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _, context) => {
+      // Rollback the main pipeline view if available
+      if (context?.previousLeads) {
+        queryClient.setQueryData(['leads', undefined], context.previousLeads);
+      }
       toast.error('Erro ao atualizar status: ' + error.message);
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure data consistency
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
   });
 }

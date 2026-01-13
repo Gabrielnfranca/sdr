@@ -31,6 +31,7 @@ export interface Lead {
   classification: LeadClassification;
   origin: string;
   tags: string[];
+  notes?: string;
   createdAt: Date;
   lastContactAt?: Date;
   score: number;

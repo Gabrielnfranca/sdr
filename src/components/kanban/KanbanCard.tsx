@@ -16,15 +16,28 @@ const KanbanCard = ({ lead, index, onClick, style }: KanbanCardProps) => {
   
   return (
     <Draggable draggableId={lead.id} index={index}>
-      {(provided) => (
+      {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          onClick={onClick}
-          className="bg-card rounded-lg border shadow-sm p-3 cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 animate-fade-in"
-          style={{ ...style, ...provided.draggableProps.style }}
+          className={cn(
+            "mb-3 outline-none group",
+            snapshot.isDragging ? "z-50 relative" : "z-0"
+          )}
+          style={{ 
+            ...style, 
+            ...provided.draggableProps.style,
+          }}
         >
+          <div
+            onClick={onClick}
+            className={cn(
+              "bg-card rounded-lg border shadow-sm p-3 cursor-pointer",
+              "hover:shadow-md hover:border-primary/30",
+              snapshot.isDragging && "shadow-xl border-primary opacity-90"
+            )}
+          >
           {/* Header */}
           <div className="flex items-start gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -84,6 +97,7 @@ const KanbanCard = ({ lead, index, onClick, style }: KanbanCardProps) => {
               )}
             </div>
           )}
+          </div>
         </div>
       )}
     </Draggable>

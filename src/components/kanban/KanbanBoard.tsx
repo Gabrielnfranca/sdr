@@ -58,7 +58,7 @@ const KanbanBoard = ({ leads, onLeadClick, onStatusChange }: KanbanBoardProps) =
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-200px)]">
+      <div className="flex h-[calc(100vh-180px)] overflow-x-auto px-4 pb-4 gap-4 select-none w-full">
         {PIPELINE_STAGES.map((status, index) => (
           <KanbanColumn
             key={status}

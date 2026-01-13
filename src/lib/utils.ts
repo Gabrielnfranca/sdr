@@ -49,6 +49,7 @@ export const mapSupabaseLeadToUILead = (dbLead: DBLead): UILead => {
     classification: (dbLead.site_classification ? classificationMap[dbLead.site_classification] : (dbLead.website ? 'pendente' : 'sem_site')),
     origin: dbLead.source,
     tags: dbLead.tags || [],
+    notes: dbLead.notes || '',
     createdAt: new Date(dbLead.created_at),
     lastContactAt: dbLead.last_contact_date ? new Date(dbLead.last_contact_date) : undefined,
     score: dbLead.score || 0

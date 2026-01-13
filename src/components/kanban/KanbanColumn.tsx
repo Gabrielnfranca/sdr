@@ -15,12 +15,12 @@ interface KanbanColumnProps {
 const KanbanColumn = ({ status, config, leads, onLeadClick, style }: KanbanColumnProps) => {
   return (
     <div 
-      className="flex-shrink-0 w-72 animate-fade-in"
+      className="flex-shrink-0 w-72 h-full flex flex-col rounded-xl bg-background/50"
       style={style}
     >
       {/* Column Header */}
       <div className={cn(
-        "px-4 py-3 rounded-t-xl border border-b-0",
+        "px-4 py-3 rounded-t-xl border border-b-0 flex-none z-10 bg-background/95",
         config.bgColor
       )}>
         <div className="flex items-center justify-between">
@@ -45,7 +45,7 @@ const KanbanColumn = ({ status, config, leads, onLeadClick, style }: KanbanColum
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className="bg-secondary/30 border border-t-0 rounded-b-xl p-2 min-h-[400px] space-y-2"
+            className="bg-secondary/30 border border-t-0 rounded-b-xl p-2 flex-grow overflow-y-auto min-h-[200px]"
           >
             {leads.map((lead, index) => (
               <KanbanCard
@@ -53,7 +53,6 @@ const KanbanColumn = ({ status, config, leads, onLeadClick, style }: KanbanColum
                 lead={lead}
                 index={index}
                 onClick={() => onLeadClick?.(lead)}
-                style={{ animationDelay: `${index * 30}ms` }}
               />
             ))}
             {provided.placeholder}
