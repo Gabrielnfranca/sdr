@@ -27,14 +27,20 @@ const Pipeline = ({ searchTerm = '' }: PipelineProps) => {
     if (!searchTerm) return allLeads;
 
     const lowerTerm = searchTerm.toLowerCase();
-    return allLeads.filter(lead => 
-      lead.companyName.toLowerCase().includes(lowerTerm) ||
-      lead.email?.toLowerCase().includes(lowerTerm) ||
-      lead.phone?.includes(lowerTerm) ||
-      lead.segment?.toLowerCase().includes(lowerTerm) ||
-      lead.city?.toLowerCase().includes(lowerTerm) ||
-      lead.notes?.toLowerCase().includes(lowerTerm)
-    );
+    return allLeads.filter(lead => {
+      const normalizedPhone = (lead.phone || '').replace(/\D/g, '');
+      const normalizedTerm = searchTerm.replace(/\D/g, '');
+      const phoneMatch = lead.phone?.includes(searchTerm) || (normalizedTerm.length > 0 && normalizedPhone.includes(normalizedTerm));
+
+      return (
+        lead.companyName.toLowerCase().includes(lowerTerm) ||
+        lead.email?.toLowerCase().includes(lowerTerm) ||
+        phoneMatch ||
+        lead.segment?.toLowerCase().includes(lowerTerm) ||
+        lead.city?.toLowerCase().includes(lowerTerm) ||
+        lead.notes?.toLowerCase().includes(lowerTerm)
+      );
+    });
   }, [dbLeads, searchTerm]);
 
   const handleLeadClick = (lead: Lead) => {

@@ -91,12 +91,19 @@ const Leads = ({ globalSearchTerm = '' }: LeadsProps) => {
   
   const leads = dbLeads.map(mapSupabaseLeadToUILead);
 
-  const filteredLeads = leads.filter(lead => 
-    lead.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.segment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLeads = leads.filter(lead => {
+    const normalizedPhone = (lead.phone || '').replace(/\D/g, '');
+    const normalizedTerm = searchTerm.replace(/\D/g, '');
+    const phoneMatch = lead.phone?.includes(searchTerm) || (normalizedTerm.length > 0 && normalizedPhone.includes(normalizedTerm));
+
+    return (
+      lead.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.segment.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      phoneMatch
+    );
+  });
 
 
   const handleLeadClick = (lead: UILead) => {
