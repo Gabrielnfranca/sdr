@@ -56,7 +56,12 @@ export default function SearchLeadsDialog({ open, onOpenChange }: SearchLeadsDia
         description: `${result.count || 0} leads encontrados e importados.`,
       });
 
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      // Aguarda 1s para o banco processar a inserção
+      setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['leads'] });
+          queryClient.refetchQueries({ queryKey: ['leads'] });
+      }, 1000);
+
       onOpenChange(false);
       setNiche("");
       setLocation("");
