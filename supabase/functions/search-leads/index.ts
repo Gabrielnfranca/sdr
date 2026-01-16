@@ -204,7 +204,50 @@ serve(async (req) => {
         const searchData = await searchRes.json();
 
         if (!searchRes.ok) {
-          throw new Error(`Google API Error: ${searchRes.status} - ${JSON.stringify(searchData)}`);
+          const errorBody = JSON.stringify(searchData);
+          // Check for Billing specific error (403) and fallback to mock
+          if (searchRes.status === 403 || errorBody.includes("PERMISSION_DENIED")) {
+             console.warn("Google API Permission/Billing Error detected. Falling back to Mock Mode.");
+             
+             const mockCategory = query.split(' ')[0] || "Empresa";
+             const mockCity = query.includes(' em ') ? query.split(' em ')[1] : "São Paulo";
+             
+             leadsToInsert = [
+                {
+                  company_name: `${mockCategory} do João (Mock Fallback)`,
+                  website: "https://www.site-ruim-exemplo.com.br",
+                  phone: "(11) 99999-1111",
+                  city: mockCity,
+                  source: 'google_maps',
+                  status: 'lead_novo',
+                  site_classification: 'site_fraco', 
+                  notes: `[MOCK - FALLBACK] Google API 403 (Billing Required). Query: "${query}"`
+                },
+                {
+                  company_name: `${mockCategory} Premium (Mock Fallback)`,
+                  website: "https://www.google.com",
+                  phone: "(11) 99999-2222",
+                  city: mockCity,
+                  source: 'google_maps',
+                  status: 'lead_novo',
+                  site_classification: 'site_ok',
+                  notes: `[MOCK - FALLBACK] Google API 403 (Billing Required). Query: "${query}"`
+                },
+                 {
+                  company_name: `${mockCategory} Sem Site (Mock Fallback)`,
+                  website: null,
+                  phone: "(11) 99999-3333",
+                  city: mockCity,
+                  source: 'google_maps',
+                  status: 'lead_novo',
+                  site_classification: 'sem_site',
+                  notes: `[MOCK - FALLBACK] Google API 403 (Billing Required). Query: "${query}"`
+                }
+             ];
+             break; // Stop loop and proceed to insert mock leads
+          }
+          
+          throw new Error(`Google API Error: ${searchRes.status} - ${errorBody}`);
         }
 
       
