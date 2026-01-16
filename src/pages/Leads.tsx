@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Filter, Download, Upload, LayoutGrid, List, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import LeadTable from '@/components/leads/LeadTable';
 import LeadCard from '@/components/leads/LeadCard';
 import { useLeads, useDeleteLeads } from '@/hooks/useLeads';
@@ -78,6 +79,7 @@ const Leads = ({ globalSearchTerm = '' }: LeadsProps) => {
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [localSearchTerm, setLocalSearchTerm] = useState('');
+  const [classificationFilter, setClassificationFilter] = useState<string>('all');
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -95,13 +97,17 @@ const Leads = ({ globalSearchTerm = '' }: LeadsProps) => {
     const normalizedPhone = (lead.phone || '').replace(/\D/g, '');
     const normalizedTerm = searchTerm.replace(/\D/g, '');
     const phoneMatch = lead.phone?.includes(searchTerm) || (normalizedTerm.length > 0 && normalizedPhone.includes(normalizedTerm));
-
-    return (
+const matchesSearch = (
       lead.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.segment.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       phoneMatch
+    );
+
+    const matchesClassification = classificationFilter === 'all' || lead.classification === classificationFilter;
+
+    return matchesSearch && matchesClassification phoneMatch
     );
   });
 
@@ -152,6 +158,21 @@ const Leads = ({ globalSearchTerm = '' }: LeadsProps) => {
         <div className="flex items-center gap-3">
           <Input
             placeholder="Buscar por empresa, segmento ou cidade..."
+          
+          <Select value={classificationFilter} onValueChange={setClassificationFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Classificação" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="sem_site">Sem Site</SelectItem>
+              <SelectItem value="site_ruim">Site Ruim / Fraco</SelectItem>
+              <SelectItem value="site_sem_seo">Sem SEO</SelectItem>
+              <SelectItem value="site_ok">Site OK</SelectItem>
+              <SelectItem value="pendente">Pendente de Análise</SelectItem>
+            </SelectContent>
+          </Select>
+
             value={localSearchTerm}
             onChange={(e) => setLocalSearchTerm(e.target.value)}
             className="w-80"
