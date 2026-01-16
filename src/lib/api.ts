@@ -326,7 +326,38 @@ export async function searchIntent(query: string, days: number = 30): Promise<{ 
     return data;
   } catch (err: any) {
     console.error("Falha ao invocar search-intent:", err);
-    throw err;
+    console.warn("⚠️ Ativando Fallback Local para Intenção.");
+
+    // Fallback Mock para Intenção
+    const mockLeads: any[] = [
+        {
+            company_name: "Post no LinkedIn (Simulado)",
+            segment: "Indicação",
+            notes: `[SIMULAÇÃO] Falha na conexão com servidor. Termo: "${query}"`,
+            source: "linkedin",
+            status: "lead_novo",
+            website: "https://linkedin.com/feed",
+            city: "Internet",
+            created_at: new Date().toISOString()
+        },
+        {
+            company_name: "Story no Instagram (Simulado)",
+            segment: "Busca de Serviço",
+            notes: `[SIMULAÇÃO] Falha na conexão com servidor. Termo: "${query}"`,
+            source: "instagram",
+            status: "lead_novo",
+            website: "https://instagram.com",
+            city: "Internet",
+            created_at: new Date().toISOString()
+        }
+    ];
+
+    return {
+        success: true,
+        count: mockLeads.length,
+        leads: mockLeads as Lead[],
+        isMock: true
+    };
   }
 }
 

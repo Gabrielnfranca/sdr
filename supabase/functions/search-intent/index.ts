@@ -25,9 +25,11 @@ serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
-        return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+        console.error("Auth Error:", userError);
+        // Retornando 200 em vez de 401 para o frontend tratar a mensagem elegantemente
+        return new Response(JSON.stringify({ success: false, error: "Usuário não autenticado. Tente fazer login novamente." }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 401
+            status: 200 
         });
     }
 
