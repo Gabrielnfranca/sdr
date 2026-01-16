@@ -62,10 +62,7 @@ serve(async (req) => {
         // Fallback Mock se der erro (ex: 403 Billing)
         console.warn("Erro Google API (Intent):", data.error);
         
-        return new Response(JSON.stringify({ 
-            success: true, 
-            isMock: true,
-            leads: [
+        const mockLeads = [
                 {
                     company_name: "Post no LinkedIn (Simulado)",
                     segment: "Indicação",
@@ -73,7 +70,8 @@ serve(async (req) => {
                     source: "linkedin",
                     status: "lead_novo",
                     website: "https://linkedin.com",
-                    created_at: new Date().toISOString()
+                    created_at: new Date().toISOString(),
+                    tenant_id: user.id
                 },
                 {
                     company_name: "Comentário no Instagram (Simulado)",
@@ -82,9 +80,18 @@ serve(async (req) => {
                     source: "instagram",
                     status: "lead_novo",
                     website: "https://instagram.com",
-                    created_at: new Date().toISOString()
+                    created_at: new Date().toISOString(),
+                    tenant_id: user.id
                 }
-            ]
+        ];
+
+        // Tenta salvar os mocks no banco para eles aparecerem na tela
+        await supabaseClient.from("leads").insert(mockLeads);
+
+        return new Response(JSON.stringify({ 
+            success: true, 
+            isMock: true,
+            leads: mockLeads
         }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

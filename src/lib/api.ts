@@ -331,7 +331,7 @@ export async function searchIntent(query: string, days: number = 30): Promise<{ 
     // Fallback Mock para Intenção
     const mockLeads: any[] = [
         {
-            company_name: "Post no LinkedIn (Simulado)",
+            company_name: "Post no LinkedIn (Simulado Fallback)",
             segment: "Indicação",
             notes: `[SIMULAÇÃO] Falha na conexão com servidor. Termo: "${query}"`,
             source: "linkedin",
@@ -341,7 +341,7 @@ export async function searchIntent(query: string, days: number = 30): Promise<{ 
             created_at: new Date().toISOString()
         },
         {
-            company_name: "Story no Instagram (Simulado)",
+            company_name: "Story no Instagram (Simulado Fallback)",
             segment: "Busca de Serviço",
             notes: `[SIMULAÇÃO] Falha na conexão com servidor. Termo: "${query}"`,
             source: "instagram",
@@ -351,6 +351,17 @@ export async function searchIntent(query: string, days: number = 30): Promise<{ 
             created_at: new Date().toISOString()
         }
     ];
+
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const leadsWithTenant = mockLeads.map(l => ({ ...l, tenant_id: user.id }));
+            const { error } = await supabase.from('leads').insert(leadsWithTenant);
+            if (error) console.error("Erro ao salvar fallback leads:", error);
+        }
+    } catch (saveError) {
+        console.error("Erro crítico ao salvar mock leads:", saveError);
+    }
 
     return {
         success: true,
