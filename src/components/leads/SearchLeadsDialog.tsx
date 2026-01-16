@@ -50,17 +50,34 @@ export default function SearchLeadsDialog({ open, onOpenChange }: SearchLeadsDia
          const query = `${niche} em ${location}`;
          result = await searchLeads(query, limit[0], siteFilter);
       }
-      
       toast({
         title: "Busca concluída",
         description: `${result.count || 0} leads encontrados e importados.`,
       });
 
-      // Aguarda 1s para o banco processar a inserção
-      setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ['leads'] });
-          queryClient.refetchQueries({ queryKey: ['leads'] });
-      }, 1000);
+      // Atualização Otimista: Força os leads a aparecerem na lista imediatamente
+      if (result.leads && result.leads.length > 0) {
+        const newLeads = result.leads.map((l: any, i: number) => ({
+            ...l,
+            // Garante campos mínimos se vierem incompletos
+            id: l.id || `temp-${Date.now()}-${i}`,
+            created_at: l.created_at || new Date().toISOString(),
+            // Garante que o Adapter do UI consiga ler
+            status: l.status || 'lead_novo',
+            site_classification: l.site_classification || (l.website ? 'site_ok' : 'sem_site'),
+            source: l.source || 'google_search',
+        }));
+
+        queryClient.setQueryData(['leads'], (oldData: any[]) => {
+            const current = oldData || [];
+            // Evita duplicatas visuais simples checando company_name
+            const newUnique = newLeads.filter((n: any) => !current.some((c: any) => c.company_name === n.company_name));
+            return [...newUnique, ...current];
+        });
+      }
+
+      // Revalida o cache em segundo plano para garantir consistência
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
 
       onOpenChange(false);
       setNiche("");
