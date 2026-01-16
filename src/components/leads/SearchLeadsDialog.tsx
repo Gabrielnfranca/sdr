@@ -181,7 +181,7 @@ export default function SearchLeadsDialog({ open, onOpenChange }: SearchLeadsDia
                     <Slider
                         id="limit"
                         min={10}
-                        max={60}
+                        max={100}
                         step={10}
                         value={limit}
                         onValueChange={setLimit}

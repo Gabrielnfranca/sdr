@@ -177,9 +177,8 @@ serve(async (req) => {
       
       let nextPageToken = undefined;
       let totalFetched = 0;
-      // Cap at 60 for now to ensure stability (Google often limits to 60 results per query context)
-      // or loop until we get enough. The new API might allow more.
-      const maxResults = Math.min(limit, 60); 
+      // Cap at 100
+      const maxResults = Math.min(limit, 100); 
 
       do {
         const requestBody: any = {
@@ -212,38 +211,37 @@ serve(async (req) => {
              const mockCategory = query.split(' ')[0] || "Empresa";
              const mockCity = query.includes(' em ') ? query.split(' em ')[1] : "São Paulo";
              
-             leadsToInsert = [
-                {
-                  company_name: `${mockCategory} do João (Mock Fallback)`,
-                  website: "https://www.site-ruim-exemplo.com.br",
-                  phone: "(11) 99999-1111",
-                  city: mockCity,
-                  source: 'google_maps',
-                  status: 'lead_novo',
-                  site_classification: 'site_fraco', 
-                  notes: `[MOCK - FALLBACK] Google API 403 (Billing Required). Query: "${query}"`
-                },
-                {
-                  company_name: `${mockCategory} Premium (Mock Fallback)`,
-                  website: "https://www.google.com",
-                  phone: "(11) 99999-2222",
-                  city: mockCity,
-                  source: 'google_maps',
-                  status: 'lead_novo',
-                  site_classification: 'site_ok',
-                  notes: `[MOCK - FALLBACK] Google API 403 (Billing Required). Query: "${query}"`
-                },
-                 {
-                  company_name: `${mockCategory} Sem Site (Mock Fallback)`,
-                  website: null,
-                  phone: "(11) 99999-3333",
-                  city: mockCity,
-                  source: 'google_maps',
-                  status: 'lead_novo',
-                  site_classification: 'sem_site',
-                  notes: `[MOCK - FALLBACK] Google API 403 (Billing Required). Query: "${query}"`
-                }
-             ];
+             // Dynamic Mock Generation
+             const allMockLeads: any[] = [];
+             for (let i = 0; i < limit; i++) {
+                const types = ['sem_site', 'site_ok', 'site_fraco', 'site_sem_seo'];
+                const type = types[i % 4]; // Distribute evenly
+                let website = null;
+                if (type === 'site_ok') website = "https://www.google.com";
+                if (type === 'site_fraco') website = "http://www.site-ruim.com";
+                if (type === 'site_sem_seo') website = "http://www.site-sem-seo.com";
+                
+                allMockLeads.push({
+                   company_name: `${mockCategory} Mock ${i + 1}`,
+                   website: website,
+                   phone: `(11) 99999-${1000 + i}`,
+                   city: mockCity,
+                   source: 'google_maps',
+                   status: 'lead_novo',
+                   site_classification: type,
+                   notes: `[MOCK] Simulação em massa (${i+1}/${limit}). Tipo: ${type}`
+                });
+             }
+
+             // Apply filter to mock data
+             if (siteFilter === 'without_site') {
+                 leadsToInsert = allMockLeads.filter(l => l.site_classification !== 'site_ok');
+             } else if (siteFilter === 'with_site') {
+                 leadsToInsert = allMockLeads.filter(l => l.website !== null);
+             } else {
+                 leadsToInsert = allMockLeads;
+             }
+             
              break; // Stop loop and proceed to insert mock leads
           }
           
@@ -259,50 +257,51 @@ serve(async (req) => {
           let notes = `Endereço: ${place.formattedAddress || 'N/A'}`;
           let siteClassification = null;
           
+          // 1. Initial Classification (Sem Site)
+          if (!hasSite) {
+              siteClassification = 'sem_site';
+          } 
+          // 2. Analyze Site Quality (Always run if there is a site)
+          else {
+              try {
+                  const controller = new AbortController();
+                  setTimeout(() => controller.abort(), 6000); // 6s timeout (faster)
+                  
+                  const res = await fetch(place.websiteUri, { 
+                      method: 'GET', 
+                      signal: controller.signal,
+                      headers: { "User-Agent": "Bot/1.0" } 
+                  });
+
+                  if (!res.ok) {
+                      siteClassification = 'site_fraco';
+                      notes += `\n[CLASSIFICACAO] Site retornou erro ${res.status}.`;
+                  } else {
+                      const html = await res.text();
+                      const isResponsive = /<meta[^>]*name=["']viewport["'][^>]*>/i.test(html);
+                      const hasTitle = /<title[^>]*>.+<\/title>/i.test(html);
+                      
+                      if (!isResponsive) {
+                          siteClassification = 'site_fraco';
+                          notes += `\n[CLASSIFICACAO] Site não responsivo.`;
+                      } else if (!hasTitle || html.length < 300) {
+                          siteClassification = 'site_sem_seo';
+                          notes += `\n[CLASSIFICACAO] Site com pouco conteúdo/SEO.`;
+                      } else {
+                          siteClassification = 'site_ok';
+                      }
+                  }
+              } catch (err) {
+                  siteClassification = 'site_fraco';
+                  notes += `\n[CLASSIFICACAO] Falha ao acessar site: ${err.message}`;
+              }
+          }
+
+          // 3. Apply Filters
           if (siteFilter === 'with_site' && !hasSite) return null;
-
-          // Lógica Avançada para "Sem Site ou Site Ruim"
           if (siteFilter === 'without_site') {
-             if (hasSite) {
-                 // Se tem site, verificamos se é ruim
-                 try {
-                     const controller = new AbortController();
-                     setTimeout(() => controller.abort(), 8000); // 8s timeout
-                     
-                     const res = await fetch(place.websiteUri, { 
-                         method: 'GET', 
-                         signal: controller.signal,
-                         headers: { "User-Agent": "Bot/1.0" } 
-                     });
-
-                     if (!res.ok) {
-                         // Site fora do ar ou com erro (Oportunidade!)
-                         siteClassification = 'site_fraco';
-                         notes += `\n[OPORTUNIDADE] Site retornou erro ${res.status}.`;
-                     } else {
-                         const html = await res.text();
-                         const isResponsive = /<meta[^>]*name=["']viewport["'][^>]*>/i.test(html);
-                         const hasTitle = /<title[^>]*>.+<\/title>/i.test(html);
-                         
-                         if (!isResponsive) {
-                             siteClassification = 'site_fraco';
-                             notes += `\n[OPORTUNIDADE] Site não responsivo.`;
-                         } else if (!hasTitle || html.length < 500) {
-                             siteClassification = 'site_sem_seo';
-                             notes += `\n[OPORTUNIDADE] Site com pouco conteúdo/SEO.`;
-                         } else {
-                             // Site parece bom, DESCARTAR pois o filtro é "without_site" (buscar oportunidades)
-                             return null; 
-                         }
-                     }
-                 } catch (err) {
-                     // Erro de conexão (DNS, Timeout) -> Considerar "Site Ruim/Fora do Ar"
-                     siteClassification = 'site_fraco';
-                     notes += `\n[OPORTUNIDADE] Falha ao acessar site: ${err.message}`;
-                 }
-             } else {
-                 siteClassification = 'sem_site';
-             }
+              // Discard if the site is perfectly fine
+              if (siteClassification === 'site_ok') return null;
           }
 
           let city = null;
