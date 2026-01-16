@@ -107,8 +107,7 @@ const matchesSearch = (
 
     const matchesClassification = classificationFilter === 'all' || lead.classification === classificationFilter;
 
-    return matchesSearch && matchesClassification phoneMatch
-    );
+    return matchesSearch && matchesClassification;
   });
 
 
@@ -158,6 +157,10 @@ const matchesSearch = (
         <div className="flex items-center gap-3">
           <Input
             placeholder="Buscar por empresa, segmento ou cidade..."
+            value={localSearchTerm}
+            onChange={(e) => setLocalSearchTerm(e.target.value)}
+            className="w-[300px]"
+          />
           
           <Select value={classificationFilter} onValueChange={setClassificationFilter}>
             <SelectTrigger className="w-[180px]">
@@ -172,11 +175,6 @@ const matchesSearch = (
               <SelectItem value="pendente">Pendente de Análise</SelectItem>
             </SelectContent>
           </Select>
-
-            value={localSearchTerm}
-            onChange={(e) => setLocalSearchTerm(e.target.value)}
-            className="w-80"
-          />
           <Button variant="outline" size="icon">
             <Filter className="w-4 h-4" />
           </Button>
