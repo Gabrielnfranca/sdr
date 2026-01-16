@@ -201,7 +201,7 @@ export default function SearchLeadsDialog({ open, onOpenChange }: SearchLeadsDia
                     <SelectContent>
                         <SelectItem value="all">Todos</SelectItem>
                         <SelectItem value="with_site">Apenas com Site</SelectItem>
-                        <SelectItem value="without_site">Apenas sem Site</SelectItem>
+                        <SelectItem value="without_site">Sem Site ou Site Ruim</SelectItem>
                     </SelectContent>
                     </Select>
                 </div>

@@ -256,9 +256,54 @@ serve(async (req) => {
       const processPlace = async (place: any) => {
         try {
           const hasSite = !!place.websiteUri;
+          let notes = `Endereço: ${place.formattedAddress || 'N/A'}`;
+          let siteClassification = null;
           
           if (siteFilter === 'with_site' && !hasSite) return null;
-          if (siteFilter === 'without_site' && hasSite) return null;
+
+          // Lógica Avançada para "Sem Site ou Site Ruim"
+          if (siteFilter === 'without_site') {
+             if (hasSite) {
+                 // Se tem site, verificamos se é ruim
+                 try {
+                     const controller = new AbortController();
+                     setTimeout(() => controller.abort(), 8000); // 8s timeout
+                     
+                     const res = await fetch(place.websiteUri, { 
+                         method: 'GET', 
+                         signal: controller.signal,
+                         headers: { "User-Agent": "Bot/1.0" } 
+                     });
+
+                     if (!res.ok) {
+                         // Site fora do ar ou com erro (Oportunidade!)
+                         siteClassification = 'site_fraco';
+                         notes += `\n[OPORTUNIDADE] Site retornou erro ${res.status}.`;
+                     } else {
+                         const html = await res.text();
+                         const isResponsive = /<meta[^>]*name=["']viewport["'][^>]*>/i.test(html);
+                         const hasTitle = /<title[^>]*>.+<\/title>/i.test(html);
+                         
+                         if (!isResponsive) {
+                             siteClassification = 'site_fraco';
+                             notes += `\n[OPORTUNIDADE] Site não responsivo.`;
+                         } else if (!hasTitle || html.length < 500) {
+                             siteClassification = 'site_sem_seo';
+                             notes += `\n[OPORTUNIDADE] Site com pouco conteúdo/SEO.`;
+                         } else {
+                             // Site parece bom, DESCARTAR pois o filtro é "without_site" (buscar oportunidades)
+                             return null; 
+                         }
+                     }
+                 } catch (err) {
+                     // Erro de conexão (DNS, Timeout) -> Considerar "Site Ruim/Fora do Ar"
+                     siteClassification = 'site_fraco';
+                     notes += `\n[OPORTUNIDADE] Falha ao acessar site: ${err.message}`;
+                 }
+             } else {
+                 siteClassification = 'sem_site';
+             }
+          }
 
           let city = null;
           if (place.formattedAddress) {
@@ -296,7 +341,8 @@ serve(async (req) => {
             city: city || "Desconhecida",
             source: 'google_maps',
             status: 'lead_novo',
-            notes: `Endereço: ${place.formattedAddress}`
+            site_classification: siteClassification, // Nova propriedade
+            notes: notes
           };
         } catch (e) {
           console.error(`Error processing place ${place.displayName?.text}:`, e);
