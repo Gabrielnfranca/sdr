@@ -133,7 +133,7 @@ serve(async (req) => {
       throw new Error("Query is required");
     }
 
-    let leadsToInsert = [];
+    let leadsToInsert: any[] = [];
 
     if (isMockMode) {
       console.log("Running in MOCK MODE (No valid Google API Key found)");
@@ -305,7 +305,7 @@ serve(async (req) => {
       };
 
       // Process in batches of 5 to respect resources
-      const processedResults = [];
+      const processedResults: any[] = [];
       const batchSize = 5;
       for (let i = 0; i < places.length; i += batchSize) {
         const batch = places.slice(i, i + batchSize);
