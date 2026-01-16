@@ -46,6 +46,15 @@ const AppRoutes = () => (
         <Index />
       </ProtectedRoute>
     } />
+    {/* Rotas para deep linking que renderizam o Index (SPA) */}
+    <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+    <Route path="/leads" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+    <Route path="/pipeline" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+    <Route path="/campaigns" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+    <Route path="/analytics" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+    <Route path="/automations" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+    <Route path="/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+    
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import Dashboard from '@/pages/Dashboard';
@@ -19,11 +20,40 @@ const PAGE_CONFIG: Record<string, { title: string; subtitle: string }> = {
 };
 
 const Index = () => {
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Determina a página inicial com base na URL
+  const getPageFromPath = (path: string) => {
+    const p = path.replace('/', '');
+    if (p === '' || p === 'dashboard') return 'dashboard';
+    if (p === 'pipeline') return 'kanban'; // Mapeia URL pipeline -> key kanban
+    return p;
+  };
+
+  const [currentPage, setCurrentPage] = useState(getPageFromPath(location.pathname));
   const [addLeadOpen, setAddLeadOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
   const pageConfig = PAGE_CONFIG[currentPage] || PAGE_CONFIG.dashboard;
+
+  // Sincroniza URL se o currentPage mudar internamente (pelo Sidebar)
+  const handleNavigate = (page: string) => {
+    setCurrentPage(page);
+    // Atualiza a URL sem recarregar (opcional, mas bom UX)
+    let path = page;
+    if (page === 'dashboard') path = '/';
+    else if (page === 'kanban') path = '/pipeline';
+    else path = `/${page}`;
+    
+    navigate(path);
+  };
+
+  // Sincroniza estado se a URL mudar (ex: back button)
+  useEffect(() => {
+    setCurrentPage(getPageFromPath(location.pathname));
+  }, [location.pathname]);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -51,7 +81,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Sidebar 
         currentPage={currentPage} 
-        onNavigate={setCurrentPage} 
+        onNavigate={handleNavigate} 
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
