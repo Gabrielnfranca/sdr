@@ -400,83 +400,53 @@ export async function searchLeads(query: string, limit: number = 20, siteFilter:
   } catch (err: any) {
     console.error("Falha ao invocar search-leads:", err);
     
-    // --- FALLBACK GERAL (SAFE MODE) ---
-    // Se der QUALQUER erro na busca (Google API, Rede, Timeout, Billing),
-    // ativamos o modo de simulação para não travar o usuário.
-    console.warn("⚠️ Erro detectado na busca. Ativando MODO SIMULAÇÃO (Fallback).");
+    // Check for Billing/Permission errors to give a better user feedback
+    const errorMessage = err.message || '';
+    const isBillingError = errorMessage.includes('403') || errorMessage.includes('PERMISSION_DENIED') || errorMessage.includes('billing');
     
-    // 1. Tenta obter usuário logado
-    const { data: authData } = await supabase.auth.getUser();
-    const tenantId = authData?.user?.id || '00000000-0000-0000-0000-000000000000'; 
+    if (isBillingError) {
+        // Return Mock Data with a SPECIAL FLAG so the UI knows it's fake
+        console.warn("⚠️ API Bloqueada por Faturamento/Permissão. Retornando dados de Exemplo com aviso.");
+        
+        const { data: authData } = await supabase.auth.getUser();
+        const tenantId = authData?.user?.id || '00000000-0000-0000-0000-000000000000'; 
+        const mockCity = (query.includes(' em ') ? query.split(' em ')[1] : "Local").replace(/["']/g, "");
 
-    const mockCategory = (query.split(' ')[0] || "Empresa").replace(/["']/g, "");
-    const mockCity = (query.includes(' em ') ? query.split(' em ')[1] : "Local").replace(/["']/g, "");
-    
-    // 2. Gera dados falsos
-    const mockLeads = [
-    {
-        tenant_id: tenantId,
-        company_name: `${mockCategory} Start (Simulado)`,
-        website: "https://www.exemplo-ruim.com.br",
-        phone: "(11) 91111-1001",
-        city: mockCity,
-        source: 'google_maps',
-        status: 'lead_novo',
-        site_classification: 'site_fraco', 
-        notes: `[SIMULAÇÃO] Gerado por falha na API (Erro Original: ${err.message || 'Desconhecido'}).`
-    },
-    {
-        tenant_id: tenantId,
-        company_name: `${mockCategory} Pro (Simulado)`,
-        website: "https://www.google.com",
-        phone: "(11) 92222-1002",
-        city: mockCity,
-        source: 'google_maps',
-        status: 'lead_novo',
-        site_classification: 'site_ok',
-        notes: `[SIMULAÇÃO] Gerado por falha na API.`
-    },
-    {
-        tenant_id: tenantId,
-        company_name: `${mockCategory} Manual (Simulado)`,
-        website: null,
-        phone: "(11) 93333-1003",
-        city: mockCity,
-        source: 'google_maps',
-        status: 'lead_novo',
-        site_classification: 'sem_site',
-        notes: `[SIMULAÇÃO] Gerado por falha na API.`
-    }
-    ];
-
-    // 3. Tenta salvar no banco (Best Effort)
-    let savedLeads = [];
-    try {
-        if (authData?.user) {
-            const { data: inserted, error: insertError } = await supabase
-            .from('leads')
-            .insert(mockLeads)
-            .select();
-            
-            if (!insertError && inserted) {
-                savedLeads = inserted;
-            } else {
-                console.error("Erro ao salvar leads simulados:", insertError);
+        const mockLeads = [
+            {
+                tenant_id: tenantId,
+                company_name: `[DEMO] Pizzaria Exemplo (Billing Inativo)`,
+                website: "https://www.google.com",
+                phone: "(11) 99999-9999",
+                city: mockCity,
+                source: 'google_maps',
+                status: 'lead_novo',
+                site_classification: 'site_ok',
+                notes: `[AVISO] A API do Google retornou erro de Faturamento (403). Ative a conta de faturamento no Google Cloud para receber dados reais.`
+            },
+           {
+                tenant_id: tenantId,
+                company_name: `[DEMO] Oficinas Ltda`,
+                website: null,
+                phone: "(11) 98888-8888",
+                city: mockCity,
+                source: 'google_maps',
+                status: 'lead_novo',
+                site_classification: 'sem_site',
+                notes: `[AVISO] Dados simulados.`
             }
-        }
-    } catch (dbErr) {
-        console.error("Exceção DB:", dbErr);
+        ];
+
+        return { 
+            success: true, 
+            leads: mockLeads, 
+            count: 2,
+            isMock: true, // Frontend show warn user
+            error: "Google API Billing Error" 
+        };
     }
 
-    // 4. Se não salvou (erro de permissão/RLS), usa os dados da memória com IDs falsos
-    const finalLeads = savedLeads.length > 0 ? savedLeads : mockLeads.map((m, i) => ({ ...m, id: `mock-${Date.now()}-${i}` }));
-
-    return { 
-        success: true, 
-        leads: finalLeads, 
-        count: finalLeads.length,
-        message: "Aviso: Modo de Simulação Ativado (Erro na API Externa)." 
-    };
+    throw err; // Other errors (Network, 500) still throw
   }
 }
 

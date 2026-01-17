@@ -50,10 +50,20 @@ export default function SearchLeadsDialog({ open, onOpenChange }: SearchLeadsDia
          const query = `${niche} em ${location}`;
          result = await searchLeads(query, limit[0], siteFilter);
       }
-      toast({
-        title: "Busca concluída",
-        description: `${result.count || 0} leads encontrados e importados.`,
-      });
+      
+      if (result.isMock) {
+         toast({
+           title: "Modo Demonstração (Permissão Negada)",
+           description: "Sua conta Google Cloud não tem faturamento ativo (Erro 403). Exibindo dados simulados.",
+           variant: "destructive",
+           duration: 6000
+         });
+      } else {
+         toast({
+           title: "Busca concluída",
+           description: `${result.count || 0} leads encontrados e importados.`,
+         });
+      }
 
       // Atualização Otimista: Força os leads a aparecerem na lista imediatamente
       if (result.leads && result.leads.length > 0) {
