@@ -129,7 +129,7 @@ serve(async (req) => {
     const apiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
     // Force MOCK MODE if API Key is known to be bad locally or in dev
     // Check for empty or obviously placeholder keys
-    const isMockMode = !apiKey || apiKey === "SUA_CHAVE_DO_GOOGLE_AQUI" || apiKey.includes("YOUR_KEY");
+    const isMockMode = false; // FORCE REAL MODE
 
     if (!query) {
       throw new Error("Query is required");
