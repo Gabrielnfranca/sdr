@@ -127,6 +127,8 @@ serve(async (req) => {
     // ------------------
 
     const apiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
+    // Force MOCK MODE if API Key is known to be bad locally or in dev
+    // Check for empty or obviously placeholder keys
     const isMockMode = !apiKey || apiKey === "SUA_CHAVE_DO_GOOGLE_AQUI" || apiKey.includes("YOUR_KEY");
 
     if (!query) {
@@ -135,41 +137,58 @@ serve(async (req) => {
 
     let leadsToInsert: any[] = [];
 
-    if (isMockMode) {
-      console.log("Running in MOCK MODE (No valid Google API Key found)");
-      // Generate mock data based on query
-      const mockCategory = query.split(' ')[0] || "Empresa";
-      const mockCity = query.includes(' em ') ? query.split(' em ')[1] : "São Paulo";
-      
-      leadsToInsert = [
-        {
-          company_name: `${mockCategory} do João (Mock)`,
-          website: "https://www.site-ruim-exemplo.com.br", // Will trigger "site_ruim"
-          phone: "(11) 99999-1111",
-          city: mockCity,
-          source: 'google_maps',
-          status: 'lead_novo',
-          notes: `[MOCK] Imported from search: "${query}"`
-        },
-        {
-          company_name: `${mockCategory} Premium (Mock)`,
-          website: "https://www.google.com", // Will trigger "site_ok"
-          phone: "(11) 99999-2222",
-          city: mockCity,
-          source: 'google_maps',
-          status: 'lead_novo',
-          notes: `[MOCK] Imported from search: "${query}"`
-        },
-        {
-          company_name: `${mockCategory} Sem Site (Mock)`,
-          website: null, // Will trigger "sem_site"
-          phone: "(11) 99999-3333",
-          city: mockCity,
-          source: 'google_maps',
-          status: 'lead_novo',
-          notes: `[MOCK] Imported from search: "${query}"`
+    // --- MOCK GENERATOR FUNCTION ---
+    const generateMockLeads = (qty: number, filter: string, queryStr: string) => {
+        const category = queryStr.split(' ')[0] || "Empresa";
+        const cityMock = queryStr.includes(' em ') ? queryStr.split(' em ')[1] : "São Paulo";
+        const mocks: any[] = [];
+        
+        for (let i = 0; i < qty; i++) {
+           const suffix = Math.floor(Math.random() * 10000);
+           let type = 'site_ok';
+           let website: string | null = `https://www.${category.toLowerCase()}${suffix}.com.br`;
+           let siteClass = 'site_ok';
+
+           // Force types based on filter
+           if (filter === 'without_site') {
+              // 80% chance of 'sem_site', 20% 'site_fraco' (which is also "bad")
+              if (Math.random() > 0.2) {
+                 type = 'sem_site';
+                 website = null;
+                 siteClass = 'sem_site';
+              } else {
+                 type = 'site_fraco';
+                 website = `http://broken-site-${suffix}.com`;
+                 siteClass = 'site_fraco';
+              }
+           } else if (filter === 'with_site') {
+              type = 'site_ok'; // Or site_sem_seo
+              siteClass = 'site_ok';
+           } else {
+               // Random mix
+               const r = Math.random();
+               if (r < 0.3) { type = 'sem_site'; website = null; siteClass = 'sem_site'; }
+               else if (r < 0.6) { type = 'site_fraco'; website = `http://old-${suffix}.net`; siteClass = 'site_fraco'; }
+           }
+
+           mocks.push({
+             company_name: `${category} Mock ${suffix}`,
+             website: website,
+             phone: `(11) 9${Math.floor(Math.random()*9000)+1000}-${Math.floor(Math.random()*9000)+1000}`,
+             email: website ? `contato@${category.toLowerCase()}${suffix}.com.br` : null,
+             city: cityMock,
+             source: 'manual', // Mark as manual/mock to differentiate
+             status: 'lead_novo',
+             site_classification: siteClass,
+             notes: `[SIMULAÇÃO] Dados gerados localmente pois a API Google retornou erro ou está desativada.`
+           });
         }
-      ];
+        return mocks;
+    };
+
+    if (isMockMode) {
+      console.log("Running in MOCK MODE (Key invalid or missing)");
+      leadsToInsert = generateMockLeads(limit, siteFilter, query);
     } else {
       // Search Google Places API (New) - Text Search
       console.log(`Using Google Places API (New)... Target: ${limit} results`);
@@ -204,48 +223,16 @@ serve(async (req) => {
 
         if (!searchRes.ok) {
           const errorBody = JSON.stringify(searchData);
-          // Check for Billing specific error (403) and fallback to mock
+          console.error(`Google Places API Error: ${searchRes.status} - ${errorBody}`);
+          
+          // Fallback to Mock if API Permission Denied (Billing/Key issues)
           if (searchRes.status === 403 || errorBody.includes("PERMISSION_DENIED")) {
              console.warn("Google API Permission/Billing Error detected. Falling back to Mock Mode.");
-             
-             const mockCategory = query.split(' ')[0] || "Empresa";
-             const mockCity = query.includes(' em ') ? query.split(' em ')[1] : "São Paulo";
-             
-             // Dynamic Mock Generation
-             const allMockLeads: any[] = [];
-             for (let i = 0; i < limit; i++) {
-                const types = ['sem_site', 'site_ok', 'site_fraco', 'site_sem_seo'];
-                const type = types[i % 4]; // Distribute evenly
-                let website = null;
-                if (type === 'site_ok') website = "https://www.google.com";
-                if (type === 'site_fraco') website = "http://www.site-ruim.com";
-                if (type === 'site_sem_seo') website = "http://www.site-sem-seo.com";
-                
-                allMockLeads.push({
-                   company_name: `${mockCategory} Mock ${i + 1}`,
-                   website: website,
-                   phone: `(11) 99999-${1000 + i}`,
-                   city: mockCity,
-                   source: 'google_maps',
-                   status: 'lead_novo',
-                   site_classification: type,
-                   notes: `[MOCK] Simulação em massa (${i+1}/${limit}). Tipo: ${type}`
-                });
-             }
-
-             // Apply filter to mock data
-             if (siteFilter === 'without_site') {
-                 leadsToInsert = allMockLeads.filter(l => l.site_classification !== 'site_ok');
-             } else if (siteFilter === 'with_site') {
-                 leadsToInsert = allMockLeads.filter(l => l.website !== null);
-             } else {
-                 leadsToInsert = allMockLeads;
-             }
-             
-             break; // Stop loop and proceed to insert mock leads
+             leadsToInsert = generateMockLeads(limit, siteFilter, query);
+             break; 
           }
           
-          throw new Error(`Google API Error: ${searchRes.status} - ${errorBody}`);
+          throw new Error(`Google API falhou: ${searchRes.status} - ${errorBody}`);
         }
 
       
@@ -256,6 +243,7 @@ serve(async (req) => {
           const hasSite = !!place.websiteUri;
           let notes = `Endereço: ${place.formattedAddress || 'N/A'}`;
           let siteClassification = null;
+          let email: string | null = null;
           
           // 1. Initial Classification (Sem Site)
           if (!hasSite) {
@@ -278,6 +266,14 @@ serve(async (req) => {
                       notes += `\n[CLASSIFICACAO] Site retornou erro ${res.status}.`;
                   } else {
                       const html = await res.text();
+
+                      // Tenta extrair email do HTML baixado (otimização para evitar segundo request)
+                      if (!email) {
+                        const emailsFound = extractEmails(html);
+                        const valid = emailsFound.find(e => !e.endsWith('.png') && !e.endsWith('.jpg') && e.length < 50 && !e.includes('wix.com') && !e.includes('sentry') && !e.includes('example.com'));
+                        if (valid) email = valid;
+                      }
+
                       const isResponsive = /<meta[^>]*name=["']viewport["'][^>]*>/i.test(html);
                       const hasTitle = /<title[^>]*>.+<\/title>/i.test(html);
                       
@@ -317,7 +313,9 @@ serve(async (req) => {
             }
           }
 
-          let email = null;
+          // Removed duplicate declaration
+          // let email = null;
+          
           // Temporarily disable heavy scraping to prevent timeouts provided we are debugging
           // if (place.websiteUri) {
           //   email = await scrapeEmailFromUrl(place.websiteUri);
@@ -328,7 +326,8 @@ serve(async (req) => {
             const searchApiKey = Deno.env.get("GOOGLE_SEARCH_API_KEY") || apiKey;
             // Only run secondary search if we have dedicated keys, to save time/quota
             if (cx && searchApiKey) {
-               // email = await searchGoogleForEmail(...)
+               // Executa busca secundária se houver credenciais
+               email = await searchGoogleForEmail(place.displayName?.text || "", city || "", searchApiKey, cx);
             }
           }
 
