@@ -225,13 +225,6 @@ serve(async (req) => {
           const errorBody = JSON.stringify(searchData);
           console.error(`Google Places API Error: ${searchRes.status} - ${errorBody}`);
           
-          // Fallback to Mock if API Permission Denied (Billing/Key issues)
-          if (searchRes.status === 403 || errorBody.includes("PERMISSION_DENIED")) {
-             console.warn("Google API Permission/Billing Error detected. Falling back to Mock Mode.");
-             leadsToInsert = generateMockLeads(limit, siteFilter, query);
-             break; 
-          }
-          
           throw new Error(`Google API falhou: ${searchRes.status} - ${errorBody}`);
         }
 
