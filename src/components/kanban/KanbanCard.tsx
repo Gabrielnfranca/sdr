@@ -1,5 +1,5 @@
 import { Lead, CLASSIFICATION_CONFIG } from '@/types/lead';
-import { Building2, MapPin, Globe, Star } from 'lucide-react';
+import { Building2, MapPin, Globe, Star, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CSSProperties } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
@@ -8,10 +8,11 @@ interface KanbanCardProps {
   lead: Lead;
   index: number;
   onClick?: () => void;
+  onDelete?: (leadId: string) => void;
   style?: CSSProperties;
 }
 
-const KanbanCard = ({ lead, index, onClick, style }: KanbanCardProps) => {
+const KanbanCard = ({ lead, index, onClick, onDelete, style }: KanbanCardProps) => {
   const classConfig = CLASSIFICATION_CONFIG[lead.classification];
   
   return (
@@ -33,11 +34,30 @@ const KanbanCard = ({ lead, index, onClick, style }: KanbanCardProps) => {
           <div
             onClick={onClick}
             className={cn(
-              "bg-card rounded-lg border shadow-sm p-3 cursor-pointer",
+              "bg-card rounded-lg border shadow-sm p-3 cursor-pointer relative group/card",
               "hover:shadow-md hover:border-primary/30",
               snapshot.isDragging && "shadow-xl border-primary opacity-90"
             )}
           >
+          
+          {/* Delete Action (Hover) */}
+          {onDelete && (
+            <div 
+               className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-all duration-200 z-20"
+            >
+                <button
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     onDelete(lead.id);
+                   }}
+                   className="p-1.5 hover:bg-destructive text-muted-foreground hover:text-white rounded-md bg-background/80 backdrop-blur-sm shadow-sm border"
+                   title="Excluir Lead"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-start gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import KanbanBoard from '@/components/kanban/KanbanBoard';
-import { useLeads, useUpdateLeadStatus, useAutoProspect, useUpdateLead, useUpdateLeadPosition } from '@/hooks/useLeads';
+import { useLeads, useUpdateLeadStatus, useAutoProspect, useUpdateLead, useUpdateLeadPosition, useDeleteLeads } from '@/hooks/useLeads';
 import { Lead, LeadStatus } from '@/types/lead';
 import { useToast } from '@/hooks/use-toast';
 import { mapSupabaseLeadToUILead, mapUIStatusToDBStatus } from '@/lib/utils';
@@ -20,6 +20,7 @@ const Pipeline = ({ searchTerm = '' }: PipelineProps) => {
   const autoProspectMutation = useAutoProspect();
   const updateLeadMutation = useUpdateLead();
   const updatePositionMutation = useUpdateLeadPosition();
+  const deleteLeadsMutation = useDeleteLeads();
   
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
@@ -77,6 +78,12 @@ const Pipeline = ({ searchTerm = '' }: PipelineProps) => {
     updatePositionMutation.mutate({ id: leadId, status: dbStatus, position: newPosition });
   };
 
+  const handleLeadDelete = (leadId: string) => {
+     if (confirm('Tem certeza que deseja excluir este lead?')) {
+        deleteLeadsMutation.mutate([leadId]);
+     }
+  };
+
   const handleAutoProspect = () => {
     autoProspectMutation.mutate(5); // Process 5 leads at a time
   };
@@ -113,6 +120,7 @@ const Pipeline = ({ searchTerm = '' }: PipelineProps) => {
           onLeadClick={handleLeadClick}
           onStatusChange={handleStatusChange}
           onLeadMove={handleLeadMove}
+          onLeadDelete={handleLeadDelete}
         />
       </div>
 

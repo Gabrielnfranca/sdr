@@ -9,6 +9,7 @@ interface KanbanBoardProps {
   onLeadClick?: (lead: Lead) => void;
   onStatusChange?: (leadId: string, newStatus: LeadStatus) => void;
   onLeadMove?: (leadId: string, newStatus: LeadStatus, newPosition: number) => void;
+  onLeadDelete?: (leadId: string) => void;
 }
 
 const PIPELINE_STAGES: LeadStatus[] = [
@@ -21,7 +22,7 @@ const PIPELINE_STAGES: LeadStatus[] = [
   'atendimento_humano',
 ];
 
-const KanbanBoard = ({ leads, onLeadClick, onStatusChange, onLeadMove }: KanbanBoardProps) => {
+const KanbanBoard = ({ leads, onLeadClick, onStatusChange, onLeadMove, onLeadDelete }: KanbanBoardProps) => {
   const leadsByStatus = useMemo(() => {
     const acc = PIPELINE_STAGES.reduce((acc, status) => {
       acc[status] = [];
@@ -122,6 +123,7 @@ const KanbanBoard = ({ leads, onLeadClick, onStatusChange, onLeadMove }: KanbanB
             config={STATUS_CONFIG[status]}
             leads={leadsByStatus[status] || []}
             onLeadClick={onLeadClick}
+            onLeadDelete={onLeadDelete}
             style={{ animationDelay: `${index * 50}ms` }}
           />
         ))}

@@ -9,10 +9,11 @@ interface KanbanColumnProps {
   config: { label: string; color: string; bgColor: string };
   leads: Lead[];
   onLeadClick?: (lead: Lead) => void;
+  onLeadDelete?: (leadId: string) => void;
   style?: CSSProperties;
 }
 
-const KanbanColumn = ({ status, config, leads, onLeadClick, style }: KanbanColumnProps) => {
+const KanbanColumn = ({ status, config, leads, onLeadClick, onLeadDelete, style }: KanbanColumnProps) => {
   return (
     <div 
       className="flex-shrink-0 w-72 h-full flex flex-col rounded-xl bg-background/50"
@@ -53,6 +54,7 @@ const KanbanColumn = ({ status, config, leads, onLeadClick, style }: KanbanColum
                 lead={lead}
                 index={index}
                 onClick={() => onLeadClick?.(lead)}
+                onDelete={onLeadDelete}
               />
             ))}
             {provided.placeholder}
