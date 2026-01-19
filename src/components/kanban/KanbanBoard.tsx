@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { Lead, LeadStatus, STATUS_CONFIG } from '@/types/lead';
 import KanbanColumn from './KanbanColumn';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
+import { useAutoScrollHorizontal } from '@/hooks/useAutoScrollHorizontal';
 
 interface KanbanBoardProps {
   leads: Lead[];
@@ -37,7 +38,15 @@ const KanbanBoard = ({ leads, onLeadClick, onStatusChange, onLeadMove }: KanbanB
     return acc;
   }, [leads]);
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { setIsDragging } = useAutoScrollHorizontal(scrollContainerRef);
+
+  const onDragStart = () => {
+    setIsDragging(true);
+  };
+
   const onDragEnd = (result: DropResult) => {
+    setIsDragging(false);
     const { destination, source, draggableId } = result;
 
     if (!destination) {
@@ -101,8 +110,11 @@ const KanbanBoard = ({ leads, onLeadClick, onStatusChange, onLeadMove }: KanbanB
   };
 
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex h-[calc(100vh-180px)] overflow-x-auto px-4 pb-4 gap-4 select-none w-full">
+    <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
+      <div 
+        ref={scrollContainerRef}
+        className="flex h-[calc(100vh-180px)] overflow-x-auto px-4 pb-4 gap-4 select-none w-full"
+      >
         {PIPELINE_STAGES.map((status, index) => (
           <KanbanColumn
             key={status}

@@ -1,132 +1,119 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Setup for Supabase Edge Runtime
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
+  // CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { query, days = 30 } = await req.json();
-    const authHeader = req.headers.get("Authorization");
+    console.log("Starting Search Intent Function...");
 
-     // --- AUTH CHECK ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+         throw new Error("Missing Authorization Header");
+    }
+
+    // Initialize Supabase
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader ?? "" } } }
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-        console.error("Auth Error:", userError);
-        // Retornando 200 em vez de 401 para o frontend tratar a mensagem elegantemente
-        return new Response(JSON.stringify({ success: false, error: "Usuário não autenticado. Tente fazer login novamente." }), {
+    // Auth Check
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+         console.error("Auth Failed:", authError);
+         return new Response(JSON.stringify({ success: false, error: "Authentication failed" }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200 
+            status: 200 // Soft error
         });
     }
 
-    const apiKey = Deno.env.get("GOOGLE_PLACES_API_KEY"); // Usando a mesma chave
-    const cx = Deno.env.get("GOOGLE_SEARCH_ENGINE_ID");
+    // Body Parsing
+    let body = {};
+    try {
+        body = await req.json();
+    } catch { 
+        // Ignore JSON errors (maybe body is empty)
+    }
+    const { query } = body;
 
-    if (!apiKey || !cx) {
-         throw new Error("Configuração de API incompleta (Falta API Key ou CX)");
+    // Configuration Check
+    const serpApiKey = Deno.env.get("SERPAPI_KEY");
+    if (!serpApiKey) {
+        console.error("Missing SERPAPI_KEY");
+        throw new Error("Server Configuration Error (Missing Key)");
     }
 
-    // Estratégia de Busca (Dorks)
-    const networks = [
-        'site:linkedin.com/posts',
-        'site:instagram.com',
-        'site:facebook.com',
-        'site:twitter.com'
-    ].join(' OR ');
+    // If no query, return empty or error
+    if (!query) {
+         return new Response(JSON.stringify({ success: false, error: "Query parameter missing" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+    }
 
-    const fullQuery = `${query} (${networks})`;
-    const dateRestrict = `d${days}`; // d[dias]
+    // Execute Search
+    const networks = "(site:linkedin.com/posts OR site:instagram.com OR site:facebook.com)";
+    const fullQuery = `${query} ${networks}`;
+    const url = `https://serpapi.com/search.json?q=${encodeURIComponent(fullQuery)}&api_key=${serpApiKey}&num=10&google_domain=google.com.br&gl=br&hl=pt`;
+    
+    console.log("Fetching from SerpApi...");
+    const res = await fetch(url);
+    if (!res.ok) {
+        const txt = await res.text();
+        console.error("SerpApi fail:", txt);
+        throw new Error(`External API Error: ${res.status}`);
+    }
 
-    const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(fullQuery)}&dateRestrict=${dateRestrict}&num=10`;
-
-    console.log(`Buscando Intenção: ${fullQuery} (Últimos ${days} dias)`);
-
-    const res = await fetch(searchUrl);
     const data = await res.json();
-
     if (data.error) {
-        // Fallback Mock se der erro (ex: 403 Billing)
-        console.warn("Erro Google API (Intent):", data.error);
-        
-        const mockLeads = [
-                {
-                    company_name: "Post no LinkedIn (Simulado)",
-                    segment: "Indicação",
-                    notes: `Encontrado buscando por: "${query}". (API Bloqueada - Modo Simulação)`,
-                    source: "linkedin",
-                    status: "lead_novo",
-                    website: "https://linkedin.com",
-                    created_at: new Date().toISOString(),
-                    tenant_id: user.id
-                },
-                {
-                    company_name: "Comentário no Instagram (Simulado)",
-                    segment: "Procura-se",
-                    notes: `Encontrado buscando por: "${query}". (API Bloqueada - Modo Simulação)`,
-                    source: "instagram",
-                    status: "lead_novo",
-                    website: "https://instagram.com",
-                    created_at: new Date().toISOString(),
-                    tenant_id: user.id
-                }
-        ];
-
-        // Tenta salvar os mocks no banco para eles aparecerem na tela
-        await supabaseClient.from("leads").insert(mockLeads);
-
-        return new Response(JSON.stringify({ 
-            success: true, 
-            isMock: true,
-            leads: mockLeads
-        }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        throw new Error(`SerpApi Logic Error: ${data.error}`);
     }
 
-    const leads = (data.items || []).map((item: any) => ({
-        company_name: item.title || "Lead de Rede Social",
-        segment: "Interesse Detectado",
-        city: "Internet", // Difícil saber a cidade exata por post
-        website: item.link,
-        source: item.link.includes("linkedin") ? "linkedin" : 
-                item.link.includes("instagram") ? "instagram" : 
-                item.link.includes("facebook") ? "facebook" : "google_search",
+    // Map Result
+    const organic = data.organic_results || data.organic_results_state || [];
+    const leads = organic.map((item: any) => ({
+        tenant_id: user.id,
+        company_name: (item.title || "Social Lead").substring(0, 100),
         status: "lead_novo",
-        notes: `[INTENÇÃO] Snippet: ${item.snippet}\nLink: ${item.link}`,
-        tenant_id: user.id
+        source: "social_search",
+        notes: item.snippet || "Sem descrição",
+        website: item.link
     }));
 
-    // Inserir no Banco
+    // Save
     if (leads.length > 0) {
-        const { error: insertError } = await supabaseClient
-            .from("leads")
-            .insert(leads);
-        
-        if (insertError) console.error("Erro ao salvar leads:", insertError);
+        const { error } = await supabaseClient.from("leads").insert(leads);
+        if (error) {
+             console.error("DB Insert Error:", error);
+             throw new Error("Failed to save leads to database");
+        }
     }
 
     return new Response(JSON.stringify({ success: true, count: leads.length, leads }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
 
-  } catch (error: any) {
-    return new Response(JSON.stringify({ success: false, error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+  } catch (err: any) {
+    console.error("Global Catch:", err);
+    return new Response(JSON.stringify({ 
+        success: false, 
+        error: err.message || "Unknown Error",
+        details: err.toString()
+    }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200 // Always return 200 to prevent frontend generic error
     });
   }
 });
+

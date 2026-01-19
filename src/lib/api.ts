@@ -326,49 +326,18 @@ export async function searchIntent(query: string, days: number = 30): Promise<{ 
     return data;
   } catch (err: any) {
     console.error("Falha ao invocar search-intent:", err);
+    throw err; // Propagate error to UI instead of showing misleading Mock/Billing error
+    
+    /* REMOVED OLD MOCK FALLBACK TO EXPOSE REAL ERRORS
     console.warn("⚠️ Ativando Fallback Local para Intenção.");
-
-    // Fallback Mock para Intenção
-    const mockLeads: any[] = [
-        {
-            company_name: "Post no LinkedIn (Simulado Fallback)",
-            segment: "Indicação",
-            notes: `[SIMULAÇÃO] Falha na conexão com servidor. Termo: "${query}"`,
-            source: "linkedin",
-            status: "lead_novo",
-            website: "https://linkedin.com/feed",
-            city: "Internet",
-            created_at: new Date().toISOString()
-        },
-        {
-            company_name: "Story no Instagram (Simulado Fallback)",
-            segment: "Busca de Serviço",
-            notes: `[SIMULAÇÃO] Falha na conexão com servidor. Termo: "${query}"`,
-            source: "instagram",
-            status: "lead_novo",
-            website: "https://instagram.com",
-            city: "Internet",
-            created_at: new Date().toISOString()
-        }
-    ];
-
-    try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            const leadsWithTenant = mockLeads.map(l => ({ ...l, tenant_id: user.id }));
-            const { error } = await supabase.from('leads').insert(leadsWithTenant);
-            if (error) console.error("Erro ao salvar fallback leads:", error);
-        }
-    } catch (saveError) {
-        console.error("Erro crítico ao salvar mock leads:", saveError);
-    }
-
+    // ... code omitted ...
     return {
         success: true,
         count: mockLeads.length,
         leads: mockLeads as Lead[],
         isMock: true
     };
+    */
   }
 }
 
