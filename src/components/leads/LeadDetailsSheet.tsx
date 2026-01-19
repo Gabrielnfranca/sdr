@@ -110,11 +110,6 @@ export default function LeadDetailsSheet({
                 <span>{lead.city}</span>
               </div>
             </div>
-            
-             <Button variant="outline" size="icon" onClick={() => onOpenChange(false)}>
-                <span className="sr-only">Fechar</span>
-                <span aria-hidden="true" className="text-xl">×</span>
-             </Button>
           </div>
         </div>
 
