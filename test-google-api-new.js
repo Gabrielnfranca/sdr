@@ -1,5 +1,5 @@
 
-const apiKey = "AIzaSyDrttlZvIHRQ3AJvCTwE3e1jne8Udh3-O8";
+const apiKey = "AIzaSyBnj18WLwd7E_jWJ9vcwHf_DhpZ337tYug";
 const url = "https://places.googleapis.com/v1/places:searchText";
 
 async function testNewApi() {

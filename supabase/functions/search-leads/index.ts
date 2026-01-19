@@ -235,23 +235,23 @@ serve(async (req) => {
         try {
           const hasSite = !!place.websiteUri;
           let notes = `Endereço: ${place.formattedAddress || 'N/A'}`;
-          let siteClassification = null;
+          
+          // Melhoria na Classificação: Assume um padrão se tiver site, para evitar NULL
+          let siteClassification = hasSite ? 'site_fraco' : 'sem_site';
           let email: string | null = null;
           
-          // 1. Initial Classification (Sem Site)
-          if (!hasSite) {
-              siteClassification = 'sem_site';
-          } 
-          // 2. Analyze Site Quality (Always run if there is a site)
-          else {
+          if (hasSite) {
               try {
                   const controller = new AbortController();
-                  setTimeout(() => controller.abort(), 6000); // 6s timeout (faster)
+                  setTimeout(() => controller.abort(), 8000); // Aumentado para 8s
                   
                   const res = await fetch(place.websiteUri, { 
                       method: 'GET', 
                       signal: controller.signal,
-                      headers: { "User-Agent": "Bot/1.0" } 
+                      headers: { 
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+                      } 
                   });
 
                   if (!res.ok) {
@@ -263,7 +263,7 @@ serve(async (req) => {
                       // Tenta extrair email do HTML baixado (otimização para evitar segundo request)
                       if (!email) {
                         const emailsFound = extractEmails(html);
-                        const valid = emailsFound.find(e => !e.endsWith('.png') && !e.endsWith('.jpg') && e.length < 50 && !e.includes('wix.com') && !e.includes('sentry') && !e.includes('example.com'));
+                        const valid = emailsFound.find(e => !e.endsWith('.png') && !e.endsWith('.jpg') && e.length < 50 && !e.includes('wix.com') && !e.includes('sentry') && !e.includes('example.com') && !e.includes('w3.org'));
                         if (valid) email = valid;
                       }
 
@@ -280,11 +280,14 @@ serve(async (req) => {
                           siteClassification = 'site_ok';
                       }
                   }
-              } catch (err) {
+              } catch (err: any) {
+                  // Se der timeout ou erro de rede, mantém 'site_fraco' (assumido no início)
+                  console.error(`Erro ao analisar site ${place.websiteUri}:`, err);
                   siteClassification = 'site_fraco';
                   notes += `\n[CLASSIFICACAO] Falha ao acessar site: ${err.message}`;
               }
           }
+          // Fim da análise de site
 
           // 3. Apply Filters
           if (siteFilter === 'with_site' && !hasSite) return null;
