@@ -198,3 +198,31 @@
 .animate-pulse-soft {
   animation: pulse-soft 2s ease-in-out infinite;
 }
+
+@layer utilities {
+  /* Elegant Custom Scrollbar */
+  .kanban-scrollbar::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+
+  .kanban-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .kanban-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.3); /* slate-400 equivalent transparent */
+    border-radius: 9999px;
+  }
+
+  .kanban-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(148, 163, 184, 0.6);
+  }
+  
+  /* Firefox */
+  .kanban-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+  }
+}
+

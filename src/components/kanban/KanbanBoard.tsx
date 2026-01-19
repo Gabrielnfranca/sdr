@@ -113,7 +113,7 @@ const KanbanBoard = ({ leads, onLeadClick, onStatusChange, onLeadMove }: KanbanB
     <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
       <div 
         ref={scrollContainerRef}
-        className="flex h-[calc(100vh-180px)] overflow-x-auto px-4 pb-4 gap-4 select-none w-full"
+        className="flex h-[calc(100vh-180px)] overflow-x-auto px-4 pb-4 gap-4 select-none w-full kanban-scrollbar"
       >
         {PIPELINE_STAGES.map((status, index) => (
           <KanbanColumn
