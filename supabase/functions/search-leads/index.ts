@@ -214,7 +214,7 @@ serve(async (req) => {
           headers: {
             "Content-Type": "application/json",
             "X-Goog-Api-Key": apiKey,
-            "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.googleMapsUri,nextPageToken"
+            "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.googleMapsUri,places.rating,places.userRatingCount,nextPageToken"
           },
           body: JSON.stringify(requestBody)
         });
@@ -336,6 +336,7 @@ serve(async (req) => {
             source: 'google_maps',
             status: 'lead_novo',
             site_classification: siteClassification, // Nova propriedade
+            score: place.rating ? Math.round(place.rating) : 0, // Mapeia rating (1-5) para score
             notes: notes
           };
         } catch (e) {
