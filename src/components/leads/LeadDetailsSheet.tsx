@@ -84,7 +84,7 @@ export default function LeadDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[400px] sm:w-[600px] flex flex-col p-0 gap-0 sm:max-w-[600px]">
+      <SheetContent hideClose={true} className="w-[400px] sm:w-[600px] flex flex-col p-0 gap-0 sm:max-w-[600px]">
         
         {/* Header - More professional look */}
         <div className="bg-muted/30 border-b px-6 py-4 space-y-4">
@@ -110,6 +110,11 @@ export default function LeadDetailsSheet({
                 <span>{lead.city}</span>
               </div>
             </div>
+
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/50 hover:text-foreground" onClick={() => onOpenChange(false)}>
+               <span className="sr-only">Fechar</span>
+               <span aria-hidden="true" className="text-2xl leading-none">&times;</span>
+            </Button>
           </div>
         </div>
 
