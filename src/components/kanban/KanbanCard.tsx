@@ -1,5 +1,5 @@
 import { Lead, CLASSIFICATION_CONFIG } from '@/types/lead';
-import { Building2, MapPin, Globe, Star, Trash2 } from 'lucide-react';
+import { Building2, MapPin, Globe, Star, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CSSProperties } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
@@ -40,11 +40,24 @@ const KanbanCard = ({ lead, index, onClick, onDelete, style }: KanbanCardProps) 
             )}
           >
           
-          {/* Delete Action (Hover) */}
-          {onDelete && (
-            <div 
-               className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-all duration-200 z-20"
+          {/* Actions (Hover) */}
+          <div 
+              className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-all duration-200 z-20 flex gap-1.5"
+          >
+            {/* Edit Button */}
+            <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick?.();
+                }}
+                className="p-1.5 hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-md bg-background/80 backdrop-blur-sm shadow-sm border"
+                title="Editar Lead"
             >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Delete Button */}
+            {onDelete && (
                 <button
                    onClick={(e) => {
                      e.stopPropagation();
@@ -55,8 +68,8 @@ const KanbanCard = ({ lead, index, onClick, onDelete, style }: KanbanCardProps) 
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Header */}
           <div className="flex items-start gap-2 mb-2">
